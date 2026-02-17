@@ -1,0 +1,115 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --bg-primary: #F4F8F2;
+    /* Soft Cream */
+    --text-primary: #1E2D24;
+    /* Rich Forest */
+    --text-muted: #5D7A6C;
+    /* Muted Green */
+    --brand-dark: #2F6F4E;
+    /* Deep Leaf Green */
+    --brand-light: #4CAF50;
+    /* Fresh Crop Green */
+    --accent-soil: #8D6E63;
+    /* Warm Soil */
+    --accent-harvest: #FBC02D;
+    /* Harvest Yellow */
+    --card-sage: #E8F2EC;
+    /* Muted Sage Card BG */
+  }
+
+  body {
+    @apply bg-agri-cream text-agri-dark font-sans antialiased overflow-x-hidden;
+  }
+
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6 {
+    @apply font-display font-semibold tracking-tight;
+  }
+
+  /* Reduce motion if user prefers it */
+  @media (prefers-reduced-motion: reduce) {
+    * {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+      scroll-behavior: auto !important;
+    }
+  }
+}
+
+@layer components {
+
+  /* --- PREMIUM BUTTON REDESIGN --- */
+  .btn-primary {
+    @apply inline-flex items-center justify-center px-6 py-3 rounded-2xl shadow-elevated text-white font-semibold transition-transform duration-200 transform hover:-translate-y-1 hover:shadow-lg active:scale-95 bg-gradient-to-br from-agri-green to-primary-600 backface-hidden;
+  }
+
+  .btn-secondary {
+    @apply inline-flex items-center justify-center px-6 py-3 rounded-2xl border-2 border-agri-green text-agri-green font-semibold transition-colors duration-200 hover:bg-agri-sage active:scale-95 bg-transparent;
+  }
+
+  .btn-outline {
+    @apply inline-flex items-center justify-center px-6 py-3 rounded-2xl border-2 border-white/20 text-white font-semibold transition-colors duration-200 hover:bg-white/10 active:scale-95 bg-transparent;
+  }
+
+  .btn-accent {
+    @apply inline-flex items-center justify-center px-6 py-3 rounded-2xl shadow-md text-white font-semibold transition-transform duration-200 hover:bg-opacity-90 active:scale-95 bg-gradient-to-br from-accent-yellow to-yellow-600;
+  }
+
+  /* --- GLASS CARD REDESIGN --- */
+  .card {
+    @apply bg-white/80 backdrop-blur-md border border-agri-sage rounded-[24px] shadow-card transition-shadow duration-300 hover:shadow-elevated hover:bg-white;
+  }
+
+  .card-sage {
+    @apply bg-agri-sage/60 backdrop-blur-sm border border-white/40 rounded-[24px] shadow-soft transition-shadow duration-300 hover:shadow-md hover:bg-agri-sage;
+  }
+
+  /* --- TYPOGRAPHY UTILS --- */
+  .section-title {
+    @apply text-3xl md:text-5xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-agri-dark to-agri-green mb-6 leading-tight;
+  }
+
+  .section-subtitle {
+    @apply text-lg md:text-xl text-agri-dark/70 font-medium mb-8 max-w-2xl leading-relaxed;
+  }
+
+  /* --- ANIMATION UTILS --- */
+  .animate-float {
+    animation: float 6s ease-in-out infinite;
+    will-change: transform;
+    /* Hint to browser for optimization */
+  }
+
+  .animate-pulse-slow {
+    animation: pulse 3s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+    will-change: opacity;
+  }
+
+  .backface-hidden {
+    backface-visibility: hidden;
+    -webkit-font-smoothing: subpixel-antialiased;
+  }
+}
+
+/* --- SCROLLBAR --- */
+::-webkit-scrollbar {
+  width: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  @apply bg-agri-green/20 rounded-full hover:bg-agri-green/40;
+}
