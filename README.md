@@ -1,66 +1,82 @@
-# AgriTech (Krushit Pro): The Future of Precision Farming 🌾🚀
+# Krushit: Precision Farming & AI-Powered Disease Detection 🌾🚀
 
-**AgriTech** is an end-to-end intelligent agricultural ecosystem designed to bridge the gap between traditional farming methods and modern technology. Developed to support rural and small-scale farmers, the platform leverages **Artificial Intelligence (CNNs)**, **Generative AI (LLMs)**, and **IoT Real-time Monitoring** to maximize crop yields, reduce chemical wastage, and provide expert guidance in local languages.
+**Krushit** is an end-to-end intelligent agricultural ecosystem designed to bridge the gap between traditional farming methods and modern technology. Developed to support rural and small-scale farmers, the platform leverages **Artificial Intelligence (CNNs)**, **Generative AI (LLMs)**, and **IoT Real-time Monitoring** to maximize crop yields, reduce chemical wastage, and provide expert guidance in local languages.
 
 ---
 
 ## 🌟 Core Pillars of the Platform
 
 ### 1. Intelligent Disease Diagnosis (Computer Vision)
-At the heart of AgriTech is a custom-trained **Convolutional Neural Network (CNN)**. 
-- **High Recall Model**: Specifically tuned to detect subtle patterns in early-stage leaf diseases (Rust, Blasts, Aphids).
-- **Instant Analysis**: Farmers upload a leaf photograph and receive a diagnosis in under 2 seconds.
-- **Actionable Treatment**: Not just a name—the system provides organic and chemical treatment protocols, localized by region.
+At the heart of Krushit is a custom-trained **Convolutional Neural Network (CNN)**. 
+- **High Resolution Analysis**: Uses a Sequential CNN model trained on specific Indian crop datasets.
+- **22-Class Coverage**: Detects diseases across major crops including **Corn, Jowar, Mango, Potato, Rice, Sugarcane, and Wheat**.
+- **Instant Analysis**: High-speed inference using FastAPI returns results in under 2 seconds.
+- **Comprehensive Reports**: Provides Diagnosis (Cause), Severity (Low/Medium/High), Treatment Plans, Prevention Tips, and Fertilizer Recommendations.
+- **Exportable Data**: Farmers can save their diagnosis as a professional PDF report.
 
 ### 2. Multi-Agent AI Assistance (Google Gemini)
 The platform integrates **Google Gemini (Flash 2.5)** as a hyper-localized farming consultant.
-- **Context-Aware Chatting**: Remembers previous farm health data to give advice like *"Since your soil moisture was low yesterday, try [specific technique] today."*
-- **Multilingual Support**: Uses advanced prompt engineering to respond fluently in **Marathi, Hindi, and English**, ensuring the AI feels like a local expert.
-- **Voice-First Navigation**: Incorporates Browser Speech APIs for hands-free field use.
+- **Context-Aware Chatting**: Remembers previous farm health data to provide relevant advice.
+- **Multilingual Support**: Fluently responds in **Marathi, Hindi, and English**, ensuring the AI feels like a local expert.
+- **Smart Fallback**: Includes a rule-based localized engine that works even without an active LLM connection.
 
-### 3. Precision Farming & IoT Integration
-AgriTech moves beyond static advice by processing live data from the ground.
-- **Real-time Monitoring**: Visualizes soil moisture, temperature, and humidity through an intuitive "Stat Card" system.
-- **Smart Irrigation Scheduling**: Uses weather forecast data merged with soil sensor readings to suggest precise watering windows, potentially saving up to 30% water.
-- **Weather Resilience**: Provides specialized farming advisories based on upcoming 7-day weather events (e.g., *"Delay fertilizer application due to expected rain in 48 hours"*).
-
-### 4. Community-Driven Outbreak Mapping
-- **Crowdsourced Intelligence**: Users anonymously report disease sightings which are aggregated into a **Disease Heatmap**.
-- **Early Warning System**: Farmers receive alerts when a specific pest or disease is detected within a 5-10km radius of their mapped farm.
+### 3. Precision Farming & Dashboard
+- **Real-time Monitoring**: Visualizes soil moisture, temperature, and humidity through an intuitive dashboard.
+- **IoT-Ready Architecture**: Built to consume real-time sensor data via Supabase.
+- **Weather Integration**: Provides specialized advisories based on localized weather patterns.
 
 ---
 
-## 🛠️ Technical Deep Dive
+## 🛠️ Technical Stack
 
-### **Frontend Architecture**
-- **Next.js 15 (App Router)**: Hybrid Server/Client rendering for performance.
-- **Framer Motion**: State-of-the-art animations for a premium, responsive feel.
-- **i18next**: Complex internationalization framework for deep-level localization.
-- **Responsive 3D Hero**: Uses Three.js/Three-Fiber for high-engagement landing page visuals.
+### **Frontend (AgriTech App)**
+- **Framework**: Next.js 15 (App Router)
+- **Styling**: Tailwind CSS & Framer Motion (Animations)
+- **State & Data**: React Hooks, Context API, Supabase Client
+- **Utilities**: jsPDF (Report generation), Lucide React (Iconography), i18next (Localization)
 
 ### **AI Backend Service**
-- **FastAPI**: Asynchronous Python backend for low-latency ML inference.
-- **TensorFlow/Keras**: Serving a pre-trained CNN model optimized for edge/mobile-compatible inference.
-- **Robust Fallback**: Custom localized knowledge engine that provides basic advice even if the Gemini API is offline.
+- **Framework**: FastAPI (Asynchronous Python)
+- **ML Engine**: TensorFlow 2.18 / Keras
+- **Model Architecture**: Sequential CNN, **128x128 RGB Input**
+- **Hosting Port**: 8001 (Default)
 
-### **Database & Security**
-- **Supabase**: Real-time Postgres database for user profiles, crop history, and iot_tracking.
-- **Row Level Security (RLS)**: Ensuring farmer data privacy and secure session management.
+### **Database & Cloud**
+- **Supabase**: PostgreSQL database for user profiles, scan history, and real-time tracking.
+- **LFS Support**: Large model files (`plant_disease_model.h5`) managed via Git LFS.
 
 ---
 
-## 📦 Installation & Setup
+## 📦 Installation & Getting Started
 
-### Frontend (`agritech-app`)
-1. Install dependencies: `npm install`
-2. Set up environment variables in `.env.local` (Supabase keys)
-3. Start dev server: `npm run dev`
+### 1. Backend Setup
+```bash
+cd backend
+python -m venv venv
+source venv/bin/activate  # On Windows: venv\Scripts\activate
+pip install -r requirements.txt
+python main.py
+```
+*Note: Ensure `plant_disease_model.h5` and `class_names.json` are present in the `agritech-app` folder (the backend reads from there).*
 
-### Backend (`backend`)
-1. Create virtual environment: `python -m venv venv`
-2. Install dependencies: `pip install -r requirements.txt`
-3. Set up environment variables in `.env` (Gemini API key)
-4. Start API: `python main.py`
+### 2. Frontend Setup
+```bash
+cd agritech-app
+npm install
+npm run dev
+```
+
+### 3. Environment Configuration
+- **Backend**: Configure `GEMINI_API_KEY` in `backend/.env`.
+- **Frontend**: Configure Supabase URL and Anon Key in `agritech-app/.env.local`.
+
+---
+
+## 🚀 Key Recent Improvements
+- ✅ **Optimized ML Integration**: Fixed input shape mismatch (128x128) for high-accuracy predictions.
+- ✅ **Dynamic Class Mapping**: Integrated `class_names.json` for real-time label resolution.
+- ✅ **Server-Side Severity Logic**: Automatic classification of disease severity based on confidence scores.
+- ✅ **Refined UI Feedback**: Real-time response mapping for treatment, prevention, and fertilizer advice.
 
 ---
 
