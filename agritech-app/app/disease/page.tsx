@@ -3,7 +3,7 @@
 import { useState, useRef } from 'react';
 import FarmerDashboardLayout from '@/components/FarmerDashboardLayout';
 import { useTranslation } from 'react-i18next';
-import { Upload, Camera, AlertTriangle, CheckCircle, FileText, Share2, Save, X, Droplets, Leaf } from 'lucide-react';
+import { Upload, Camera, AlertTriangle, CheckCircle, FileText, Share2, Save, X, Leaf } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
 import jsPDF from 'jspdf';
@@ -45,7 +45,7 @@ export default function ScanCropPage() {
             const formData = new FormData();
             formData.append('file', selectedFile);
 
-            // 2. Send to our new FastAPI ML Backend
+            // 2. Send to FastAPI ML Backend
             const response = await fetch(`http://127.0.0.1:8001/predict?language=${i18n.language}`, {
                 method: 'POST',
                 body: formData,
@@ -58,45 +58,31 @@ export default function ScanCropPage() {
 
             const data = await response.json();
 
-            // 3. Update the UI with REAL results from the model
+            // 3. Map flat backend response directly to result state
+            // Backend returns: disease, confidence, severity, cause, treatment, prevention, fertilizer
             setResult({
                 disease: data.disease,
                 diseaseLocal: data.disease,
                 confidence: data.confidence,
-                severity: data.confidence > 80 ? 'high' : 'medium',
-                solution: {
-                    name: { en: data.disease, hi: data.disease, mr: data.disease },
-                    cause: {
-                        en: "Detected via leaf pattern analysis.",
-                        hi: "पत्ती पैटर्न विश्लेषण के माध्यम से पता चला।",
-                        mr: "पानांच्या नमुन्यावरून आढळले."
-                    },
-                    solution: {
-                        en: typeof data.solution === 'string' ? [data.solution] : [data.solution],
-                        hi: typeof data.solution === 'string' ? [data.solution] : [data.solution],
-                        mr: typeof data.solution === 'string' ? [data.solution] : [data.solution]
-                    },
-                    prevention: {
-                        en: typeof data.prevention === 'string' ? [data.prevention] : [data.prevention],
-                        hi: typeof data.prevention === 'string' ? [data.prevention] : [data.prevention],
-                        mr: typeof data.prevention === 'string' ? [data.prevention] : [data.prevention]
-                    },
-                    fertilizer: {
-                        en: data.fertilizer_advice,
-                        hi: data.fertilizer_advice,
-                        mr: data.fertilizer_advice
-                    }
-                }
+                severity: (data.severity as string).toLowerCase(), // "High"→"high" for CSS class matching
+                cause: data.cause,
+                treatment: data.treatment,
+                prevention: data.prevention,
+                fertilizer: data.fertilizer,
             });
         } catch (error: any) { // eslint-disable-line @typescript-eslint/no-explicit-any
             console.error('Scan error:', error);
             setResult({
                 disease: 'Error',
-                confidence: 0,
-                severity: 'high',
                 diseaseLocal: error.message === 'Failed to fetch'
                     ? 'Cannot connect to ML server. Is the Python script running?'
-                    : `Analysis Error: ${error.message}`
+                    : `Analysis Error: ${error.message}`,
+                confidence: 0,
+                severity: 'high',
+                cause: null,
+                treatment: null,
+                prevention: null,
+                fertilizer: null,
             });
         } finally {
             setAnalyzing(false);
@@ -122,9 +108,9 @@ export default function ScanCropPage() {
             autoTable(doc, {
                 startY: 35,
                 body: [
-                    ['Disease Detected', result.diseaseLocal],
+                    ['Disease Detected', result.diseaseLocal || result.disease],
                     ['Confidence', `${result.confidence}%`],
-                    ['Severity', result.severity.toUpperCase()],
+                    ['Severity', String(result.severity).toUpperCase()],
                 ],
                 theme: 'striped',
                 headStyles: { fillColor: [22, 163, 74] }
@@ -134,22 +120,19 @@ export default function ScanCropPage() {
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
             const finalY = (doc as any).lastAutoTable.finalY + 10;
 
-            if (result.solution) {
+            if (result.treatment || result.prevention) {
                 doc.setFontSize(14);
                 doc.setTextColor(0);
                 doc.text("Treatment Plan", 14, finalY);
-
-                const treatmentSteps = result.solution.solution.en || [];
-                const preventionSteps = result.solution.prevention.en || [];
 
                 autoTable(doc, {
                     startY: finalY + 5,
                     head: [['Category', 'Details']],
                     body: [
-                        ['Cause', result.solution.cause.en || 'N/A'],
-                        ['Treatment', Array.isArray(treatmentSteps) ? treatmentSteps.join('\n') : treatmentSteps],
-                        ['Prevention', Array.isArray(preventionSteps) ? preventionSteps.join('\n') : preventionSteps],
-                        ['Fertilizer', result.solution.fertilizer.en || 'N/A'],
+                        ['Cause', result.cause || 'N/A'],
+                        ['Treatment', result.treatment || 'N/A'],
+                        ['Prevention', result.prevention || 'N/A'],
+                        ['Fertilizer', result.fertilizer || 'N/A'],
                     ],
                     styles: { cellWidth: 'wrap' },
                     columnStyles: { 0: { cellWidth: 40 } }
@@ -167,8 +150,8 @@ export default function ScanCropPage() {
                     confidence: result.confidence,
                     severity: result.severity,
                     image_url: selectedImage || '',
-                    treatment: result.solution?.solution?.en?.[0] || '',
-                    prevention: result.solution?.prevention?.en?.[0] || ''
+                    treatment: result.treatment || '',
+                    prevention: result.prevention || ''
                 });
 
                 if (error) throw error;
@@ -339,81 +322,53 @@ export default function ScanCropPage() {
                                             </div>
 
                                             {/* Cause */}
-                                            {result.solution && (
+                                            {result.cause && (
                                                 <div className="bg-blue-50 rounded-xl p-4 border border-blue-100 mb-4">
                                                     <h4 className="text-sm font-bold text-blue-900 mb-2 flex items-center gap-2">
                                                         <AlertTriangle size={16} />
                                                         Cause
                                                     </h4>
                                                     <p className="text-sm text-blue-800 leading-relaxed">
-                                                        {result.solution.cause[i18n.language as 'en' | 'hi' | 'mr']}
+                                                        {result.cause}
                                                     </p>
                                                 </div>
                                             )}
 
                                             {/* Treatment Solution */}
-                                            {result.solution && (
+                                            {result.treatment && (
                                                 <div className="bg-green-50 rounded-xl p-4 border border-green-100 mb-4">
                                                     <h4 className="text-sm font-bold text-green-900 mb-3 flex items-center gap-2">
                                                         <CheckCircle size={16} />
                                                         Treatment Solution
                                                     </h4>
-                                                    <ul className="space-y-2">
-                                                        {result.solution.solution[i18n.language as 'en' | 'hi' | 'mr'].map((step: string, idx: number) => (
-                                                            <li key={idx} className="flex items-start gap-2 text-sm text-green-800">
-                                                                <span className="w-5 h-5 bg-green-200 text-green-900 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0 mt-0.5">
-                                                                    {idx + 1}
-                                                                </span>
-                                                                <span className="leading-relaxed">{step}</span>
-                                                            </li>
-                                                        ))}
-                                                    </ul>
+                                                    <p className="text-sm text-green-800 leading-relaxed">{result.treatment}</p>
                                                 </div>
                                             )}
 
                                             {/* Prevention */}
-                                            {result.solution && (
+                                            {result.prevention && (
                                                 <div className="bg-purple-50 rounded-xl p-4 border border-purple-100 mb-4">
                                                     <h4 className="text-sm font-bold text-purple-900 mb-3 flex items-center gap-2">
                                                         <AlertTriangle size={16} />
                                                         Prevention Tips
                                                     </h4>
-                                                    <ul className="space-y-2">
-                                                        {result.solution.prevention[i18n.language as 'en' | 'hi' | 'mr'].map((tip: string, idx: number) => (
-                                                            <li key={idx} className="flex items-start gap-2 text-sm text-purple-800">
-                                                                <CheckCircle size={16} className="flex-shrink-0 mt-0.5 text-purple-600" />
-                                                                <span className="leading-relaxed">{tip}</span>
-                                                            </li>
-                                                        ))}
-                                                    </ul>
+                                                    <p className="text-sm text-purple-800 leading-relaxed">{result.prevention}</p>
                                                 </div>
                                             )}
 
                                             {/* Fertilizer Recommendation */}
-                                            {result.solution?.fertilizer && (
+                                            {result.fertilizer && (
                                                 <div className="bg-amber-50 rounded-xl p-4 border border-amber-100 mb-4">
                                                     <h4 className="text-sm font-bold text-amber-900 mb-2 flex items-center gap-2">
                                                         <Leaf size={16} />
                                                         Fertilizer Recommendation
                                                     </h4>
                                                     <p className="text-sm text-amber-800 leading-relaxed">
-                                                        {result.solution.fertilizer[i18n.language as 'en' | 'hi' | 'mr']}
+                                                        {result.fertilizer}
                                                     </p>
                                                 </div>
                                             )}
 
-                                            {/* Irrigation Advice */}
-                                            {result.solution?.irrigation && (
-                                                <div className="bg-cyan-50 rounded-xl p-4 border border-cyan-100">
-                                                    <h4 className="text-sm font-bold text-cyan-900 mb-2 flex items-center gap-2">
-                                                        <Droplets size={16} />
-                                                        Irrigation Advice
-                                                    </h4>
-                                                    <p className="text-sm text-cyan-800 leading-relaxed">
-                                                        {result.solution.irrigation[i18n.language as 'en' | 'hi' | 'mr']}
-                                                    </p>
-                                                </div>
-                                            )}
                                         </div>
                                     </div>
 
