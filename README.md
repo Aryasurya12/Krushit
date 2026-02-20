@@ -81,5 +81,5 @@ npm run dev
 ---
 
 ### **Author**
-Developed by **Arya Surya** 
+Developed by **GEONIX** 
 *Helping build a more sustainable and tech-forward future for agriculture.*
