@@ -1,0 +1,86 @@
+# Krushit Pro - Database Architecture
+
+This document provides a detailed overview of the database structure for the Krushit Pro (AgriTech) platform. The system is designed to be modular, scalable, and secure, leveraging Supabase's PostgreSQL capabilities.
+
+## 🏗️ Entity Relationship Diagram
+
+```mermaid
+erDiagram
+    USERS ||--o{ CROPS : "manages"
+    USERS ||--o{ FARMS : "owns"
+    FARMS ||--o{ CROPS : "contains"
+    CROPS ||--o{ DISEASE_SCANS : "has"
+    CROPS ||--o{ IOT_SENSORS : "monitored_by"
+    CROPS ||--o{ RECOMMENDATIONS : "receives"
+    CROPS ||--o{ IRRIGATION_DECISIONS : "decides"
+    USERS ||--o{ NOTIFICATIONS : "receives"
+    FARMS ||--o{ WEATHER_LOGS : "tracks"
+    USERS ||--o{ VOICE_INTERACTIONS : "interacts"
+    COMMUNITY_DISEASE_RECORDS }o--|| USERS : "reported_by"
+```
+
+## 📂 Database Modules
+
+### 1. User & Profile Management
+Handles user accounts, authentication (synced with Supabase Auth), and farmer profiles.
+
+| Table | Purpose | Key Fields |
+| :--- | :--- | :--- |
+| `users` | Core user profile synced with Auth | `id`, `email`, `full_name`, `phone`, `region`, `language` |
+| `farmers` | Extended profile data (if separate) | `id`, `name`, `phone`, `region` |
+
+### 2. Farm & Crop Management
+The backbone of the application, tracking land and agricultural assets.
+
+| Table | Purpose | Key Fields |
+| :--- | :--- | :--- |
+| `farms` | Physical farm locations | `farmer_id`, `name`, `location_lat`, `location_lng`, `farm_size` |
+| `crops` | Active and past crop cycles | `user_id`, `farm_id`, `name`, `variety`, `sown_date`, `current_stage` |
+| `growth_stages`| Guidance for each stage | `crop_id`, `stage_name`, `stage_order`, `expected_duration` |
+
+### 3. AI Health & Scans
+Stores the results of the AI disease detection model.
+
+| Table | Purpose | Key Fields |
+| :--- | :--- | :--- |
+| `disease_scans`| Individual plant scans | `image_url`, `disease_detected`, `confidence`, `severity`, `treatment` |
+| `advisory_history`| Historical advice given | `crop_id`, `advisory_type`, `advisory_text`, `priority` |
+
+### 4. Environmental & IoT Data
+Tracks real-time sensor data and historical weather.
+
+| Table | Purpose | Key Fields |
+| :--- | :--- | :--- |
+| `iot_sensors` | Raw sensor readings | `sensor_type`, `value`, [unit](file:///d:/Antigravity/AgriTech/agritech-app/app/community/page.tsx#22-153), `timestamp` |
+| `sensor_mappings`| Configured sensor hardware | `sensor_id`, `sensor_type`, `api_endpoint`, `mqtt_topic` |
+| `weather_data` | Daily/Hourly weather logs | `region`, `temp`, `humidity`, `forecast` (JSONB) |
+
+### 5. Community & Intelligence
+Social features and automated decision-making logs.
+
+| Table | Purpose | Key Fields |
+| :--- | :--- | :--- |
+| `community_disease_records` | Crowdsourced disease map | `disease_name`, `crop_type`, `location_lat`, `location_lng` |
+| `irrigation_decisions` | AI-driven water management | `crop_id`, `irrigation_score`, `recommendation`, `factors` |
+| `voice_interactions` | Logs for voice assistant | `farmer_id`, `query_text`, `response_text`, `language` |
+
+## 🔒 Security & Performance
+
+### Row Level Security (RLS)
+Every table implements RLS policies ensure that farmers can **only** access their own data.
+*   **CROPS**: `auth.uid() = user_id`
+*   **SCANS**: `auth.uid() = user_id`
+*   **COMMUNITY**: Read: Public \| Insert: Authenticated
+
+### Optimization
+Indexes are established on frequently queried foreign keys (`user_id`, `crop_id`) and timestamp columns to ensure the PWA remains fast even with thousands of sensor entries.
+
+## 📦 Storage Strategy
+Image assets are stored in Supabase Storage Buckets with the following structure:
+*   `crop_images/`: Progress photos for each crop.
+*   `disease_scans/`: High-res photos for AI analysis.
+*   `user_avatars/`: Profile pictures.
+
+---
+> [!TIP]
+> Use the [supabase-schema.sql](file:///d:/Antigravity/AgriTech/agritech-app/database/supabase-schema.sql) file in the `/database` directory to initialize this structure in a single execution.
