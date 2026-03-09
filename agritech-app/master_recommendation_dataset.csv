@@ -1,0 +1,121 @@
+disease_name,severity,cause,treatment_solution,prevention_tips,fertilizer_recommendation
+Mango___Powdery_Mildew,Low,Fungal infection in humid conditions,Early-stage control for Mango___Powdery_Mildew: apply light preventive dose of Spray sulfur fungicide and monitor crop weekly,Ensure proper air circulation,Apply balanced NPK
+Mango___Powdery_Mildew,Medium,Fungal infection in humid conditions,Moderate infection of Mango___Powdery_Mildew: apply recommended field dose of Spray sulfur fungicide twice at 7-day interval,Ensure proper air circulation,Apply balanced NPK
+Mango___Powdery_Mildew,High,Fungal infection in humid conditions,Severe spread of Mango___Powdery_Mildew: apply systemic fungicide schedule using Spray sulfur fungicide immediately and repeat after 5 days,Ensure proper air circulation,Apply balanced NPK
+Mango___Anthracnose,Low,Colletotrichum fungus infection,Early-stage control for Mango___Anthracnose: apply light preventive dose of Apply copper fungicide and monitor crop weekly,Prune infected branches,Use potassium rich fertilizer
+Mango___Anthracnose,Medium,Colletotrichum fungus infection,Moderate infection of Mango___Anthracnose: apply recommended field dose of Apply copper fungicide twice at 7-day interval,Prune infected branches,Use potassium rich fertilizer
+Mango___Anthracnose,High,Colletotrichum fungus infection,Severe spread of Mango___Anthracnose: apply systemic fungicide schedule using Apply copper fungicide immediately and repeat after 5 days,Prune infected branches,Use potassium rich fertilizer
+Mango___Healthy,Low,No disease detected,No treatment required,Maintain regular crop care,Maintain regular fertilization
+Mango___Healthy,Medium,No disease detected,No treatment required,Maintain regular crop care,Maintain regular fertilization
+Mango___Healthy,High,No disease detected,No treatment required,Maintain regular crop care,Maintain regular fertilization
+Jowar___Rust,Low,Rust fungus infection,Early-stage control for Jowar___Rust: apply light preventive dose of Spray propiconazole fungicide and monitor crop weekly,Use resistant varieties,Apply nitrogen fertilizer moderately
+Jowar___Rust,Medium,Rust fungus infection,Moderate infection of Jowar___Rust: apply recommended field dose of Spray propiconazole fungicide twice at 7-day interval,Use resistant varieties,Apply nitrogen fertilizer moderately
+Jowar___Rust,High,Rust fungus infection,Severe spread of Jowar___Rust: apply systemic fungicide schedule using Spray propiconazole fungicide immediately and repeat after 5 days,Use resistant varieties,Apply nitrogen fertilizer moderately
+Jowar___Healthy,Low,No disease detected,No treatment required,Maintain regular crop care,Apply balanced NPK
+Jowar___Healthy,Medium,No disease detected,No treatment required,Maintain regular crop care,Apply balanced NPK
+Jowar___Healthy,High,No disease detected,No treatment required,Maintain regular crop care,Apply balanced NPK
+Wheat___Yellow_Rust,Low,Fungal rust infection,Early-stage control for Wheat___Yellow_Rust: apply light preventive dose of Spray triazole fungicide and monitor crop weekly,Use resistant seeds,Apply nitrogen in split doses
+Wheat___Yellow_Rust,Medium,Fungal rust infection,Moderate infection of Wheat___Yellow_Rust: apply recommended field dose of Spray triazole fungicide twice at 7-day interval,Use resistant seeds,Apply nitrogen in split doses
+Wheat___Yellow_Rust,High,Fungal rust infection,Severe spread of Wheat___Yellow_Rust: apply systemic fungicide schedule using Spray triazole fungicide immediately and repeat after 5 days,Use resistant seeds,Apply nitrogen in split doses
+Wheat___Brown_Rust,Low,Fungal rust infection,Early-stage control for Wheat___Brown_Rust: apply light preventive dose of Apply propiconazole and monitor crop weekly,Remove infected residues,Apply micronutrients
+Wheat___Brown_Rust,Medium,Fungal rust infection,Moderate infection of Wheat___Brown_Rust: apply recommended field dose of Apply propiconazole twice at 7-day interval,Remove infected residues,Apply micronutrients
+Wheat___Brown_Rust,High,Fungal rust infection,Severe spread of Wheat___Brown_Rust: apply systemic fungicide schedule using Apply propiconazole immediately and repeat after 5 days,Remove infected residues,Apply micronutrients
+Wheat___Healthy,Low,No disease detected,No treatment required,Maintain regular crop care,Apply recommended NPK
+Wheat___Healthy,Medium,No disease detected,No treatment required,Maintain regular crop care,Apply recommended NPK
+Wheat___Healthy,High,No disease detected,No treatment required,Maintain regular crop care,Apply recommended NPK
+Sugarcane___Red_Rot,Low,Fungal infection,Early-stage control for Sugarcane___Red_Rot: apply light preventive dose of Use carbendazim treatment and monitor crop weekly,Plant disease free setts,Apply potash fertilizer
+Sugarcane___Red_Rot,Medium,Fungal infection,Moderate infection of Sugarcane___Red_Rot: apply recommended field dose of Use carbendazim treatment twice at 7-day interval,Plant disease free setts,Apply potash fertilizer
+Sugarcane___Red_Rot,High,Fungal infection,Severe spread of Sugarcane___Red_Rot: apply systemic fungicide schedule using Use carbendazim treatment immediately and repeat after 5 days,Plant disease free setts,Apply potash fertilizer
+Sugarcane___Bacterial_Blight,Low,Bacterial infection,Early-stage control for Sugarcane___Bacterial_Blight: apply light preventive dose of Apply copper bactericide and monitor crop weekly,Improve drainage,Use balanced fertilizers
+Sugarcane___Bacterial_Blight,Medium,Bacterial infection,Moderate infection of Sugarcane___Bacterial_Blight: apply recommended field dose of Apply copper bactericide twice at 7-day interval,Improve drainage,Use balanced fertilizers
+Sugarcane___Bacterial_Blight,High,Bacterial infection,Severe spread of Sugarcane___Bacterial_Blight: apply systemic fungicide schedule using Apply copper bactericide immediately and repeat after 5 days,Improve drainage,Use balanced fertilizers
+Sugarcane___Healthy,Low,No disease detected,No treatment required,Maintain regular crop care,Apply organic compost
+Sugarcane___Healthy,Medium,No disease detected,No treatment required,Maintain regular crop care,Apply organic compost
+Sugarcane___Healthy,High,No disease detected,No treatment required,Maintain regular crop care,Apply organic compost
+Rice___Neck_Blast,Low,Fungal blast infection,Early-stage control for Rice___Neck_Blast: apply light preventive dose of Spray tricyclazole fungicide and monitor crop weekly,Use resistant varieties,Apply potassium fertilizer
+Rice___Neck_Blast,Medium,Fungal blast infection,Moderate infection of Rice___Neck_Blast: apply recommended field dose of Spray tricyclazole fungicide twice at 7-day interval,Use resistant varieties,Apply potassium fertilizer
+Rice___Neck_Blast,High,Fungal blast infection,Severe spread of Rice___Neck_Blast: apply systemic fungicide schedule using Spray tricyclazole fungicide immediately and repeat after 5 days,Use resistant varieties,Apply potassium fertilizer
+Rice___Leaf_Blast,Low,Fungal infection,Early-stage control for Rice___Leaf_Blast: apply light preventive dose of Apply fungicide sprays and monitor crop weekly,Maintain proper spacing,Use balanced NPK
+Rice___Leaf_Blast,Medium,Fungal infection,Moderate infection of Rice___Leaf_Blast: apply recommended field dose of Apply fungicide sprays twice at 7-day interval,Maintain proper spacing,Use balanced NPK
+Rice___Leaf_Blast,High,Fungal infection,Severe spread of Rice___Leaf_Blast: apply systemic fungicide schedule using Apply fungicide sprays immediately and repeat after 5 days,Maintain proper spacing,Use balanced NPK
+Rice___Brown_Spot,Low,Nutrient deficiency and fungus,Early-stage control for Rice___Brown_Spot: apply light preventive dose of Apply fungicide and nutrient spray and monitor crop weekly,Improve field sanitation,Increase potassium
+Rice___Brown_Spot,Medium,Nutrient deficiency and fungus,Moderate infection of Rice___Brown_Spot: apply recommended field dose of Apply fungicide and nutrient spray twice at 7-day interval,Improve field sanitation,Increase potassium
+Rice___Brown_Spot,High,Nutrient deficiency and fungus,Severe spread of Rice___Brown_Spot: apply systemic fungicide schedule using Apply fungicide and nutrient spray immediately and repeat after 5 days,Improve field sanitation,Increase potassium
+Rice___Healthy,Low,No disease detected,No treatment required,Maintain regular crop care,Apply balanced fertilizers
+Rice___Healthy,Medium,No disease detected,No treatment required,Maintain regular crop care,Apply balanced fertilizers
+Rice___Healthy,High,No disease detected,No treatment required,Maintain regular crop care,Apply balanced fertilizers
+Potato___Late_Blight,Low,Phytophthora fungus,Early-stage control for Potato___Late_Blight: apply light preventive dose of Apply metalaxyl fungicide and monitor crop weekly,Avoid overhead irrigation,Apply potassium fertilizer
+Potato___Late_Blight,Medium,Phytophthora fungus,Moderate infection of Potato___Late_Blight: apply recommended field dose of Apply metalaxyl fungicide twice at 7-day interval,Avoid overhead irrigation,Apply potassium fertilizer
+Potato___Late_Blight,High,Phytophthora fungus,Severe spread of Potato___Late_Blight: apply systemic fungicide schedule using Apply metalaxyl fungicide immediately and repeat after 5 days,Avoid overhead irrigation,Apply potassium fertilizer
+Potato___Early_Blight,Low,Alternaria fungus,Early-stage control for Potato___Early_Blight: apply light preventive dose of Spray chlorothalonil fungicide and monitor crop weekly,Remove infected leaves,Apply balanced NPK
+Potato___Early_Blight,Medium,Alternaria fungus,Moderate infection of Potato___Early_Blight: apply recommended field dose of Spray chlorothalonil fungicide twice at 7-day interval,Remove infected leaves,Apply balanced NPK
+Potato___Early_Blight,High,Alternaria fungus,Severe spread of Potato___Early_Blight: apply systemic fungicide schedule using Spray chlorothalonil fungicide immediately and repeat after 5 days,Remove infected leaves,Apply balanced NPK
+Potato___Healthy,Low,No disease detected,No treatment required,Maintain regular crop care,Maintain soil nutrients
+Potato___Healthy,Medium,No disease detected,No treatment required,Maintain regular crop care,Maintain soil nutrients
+Potato___Healthy,High,No disease detected,No treatment required,Maintain regular crop care,Maintain soil nutrients
+Corn___Northern_Leaf_Blight,Low,Fungal infection,Early-stage control for Corn___Northern_Leaf_Blight: apply light preventive dose of Spray fungicides and monitor crop weekly,Rotate crops,Apply nitrogen and potassium
+Corn___Northern_Leaf_Blight,Medium,Fungal infection,Moderate infection of Corn___Northern_Leaf_Blight: apply recommended field dose of Spray fungicides twice at 7-day interval,Rotate crops,Apply nitrogen and potassium
+Corn___Northern_Leaf_Blight,High,Fungal infection,Severe spread of Corn___Northern_Leaf_Blight: apply systemic fungicide schedule using Spray fungicides immediately and repeat after 5 days,Rotate crops,Apply nitrogen and potassium
+Corn___Gray_Leaf_Spot,Low,Fungal infection in humid weather,Early-stage control for Corn___Gray_Leaf_Spot: apply light preventive dose of Apply azoxystrobin fungicide and monitor crop weekly,Use resistant hybrids,Increase potassium
+Corn___Gray_Leaf_Spot,Medium,Fungal infection in humid weather,Moderate infection of Corn___Gray_Leaf_Spot: apply recommended field dose of Apply azoxystrobin fungicide twice at 7-day interval,Use resistant hybrids,Increase potassium
+Corn___Gray_Leaf_Spot,High,Fungal infection in humid weather,Severe spread of Corn___Gray_Leaf_Spot: apply systemic fungicide schedule using Apply azoxystrobin fungicide immediately and repeat after 5 days,Use resistant hybrids,Increase potassium
+Corn___Common_Rust,Low,Rust fungus infection,Early-stage control for Corn___Common_Rust: apply light preventive dose of Spray propiconazole and monitor crop weekly,Use resistant varieties,Apply balanced NPK
+Corn___Common_Rust,Medium,Rust fungus infection,Moderate infection of Corn___Common_Rust: apply recommended field dose of Spray propiconazole twice at 7-day interval,Use resistant varieties,Apply balanced NPK
+Corn___Common_Rust,High,Rust fungus infection,Severe spread of Corn___Common_Rust: apply systemic fungicide schedule using Spray propiconazole immediately and repeat after 5 days,Use resistant varieties,Apply balanced NPK
+Corn___Healthy,Low,No disease detected,No treatment required,Maintain regular crop care,Apply recommended fertilizer
+Corn___Healthy,Medium,No disease detected,No treatment required,Maintain regular crop care,Apply recommended fertilizer
+Corn___Healthy,High,No disease detected,No treatment required,Maintain regular crop care,Apply recommended fertilizer
+Corn___Nitrogen_Deficiency,Low,Insufficient nitrogen in soil,Apply light dose of urea and monitor yellowing leaves weekly,Practice crop rotation with legumes,Apply nitrogen fertilizer (Urea)
+Corn___Nitrogen_Deficiency,Medium,Low nitrogen availability in soil,Apply recommended split dose of nitrogen fertilizer,Maintain balanced irrigation,Use urea or ammonium nitrate
+Corn___Nitrogen_Deficiency,High,Severe nitrogen depletion,Immediate high-dose nitrogen application with soil incorporation,Conduct soil testing before next season,Apply high nitrogen NPK mix
+Corn___Phosphorus_Deficiency,Low,Low phosphorus availability,Apply single super phosphate and monitor root development,Maintain soil pH between 6-7,Use SSP fertilizer
+Corn___Phosphorus_Deficiency,Medium,Phosphorus fixation in soil,Apply recommended dose of DAP fertilizer,Improve drainage system,Use DAP fertilizer
+Corn___Phosphorus_Deficiency,High,Severe phosphorus depletion,Immediate phosphorus soil treatment,Adopt soil testing practice,Apply high concentration DAP
+Corn___Potassium_Deficiency,Low,Low potassium in soil,Apply small dose of muriate of potash and monitor leaf edges,Avoid excessive irrigation,Use potassium fertilizer (MOP)
+Corn___Potassium_Deficiency,Medium,Insufficient potassium uptake,Apply recommended field dose of potassium fertilizer,Maintain balanced NPK ratio,Use MOP or SOP fertilizer
+Corn___Potassium_Deficiency,High,Severe potassium depletion,Immediate potassium soil application with irrigation support,Adopt integrated nutrient management,Apply high-dose potassium fertilizer
+Wheat___Nitrogen_Deficiency,Low,Insufficient nitrogen in soil,Apply light urea dose and monitor plant color,Use crop rotation,Apply nitrogen fertilizer (Urea)
+Wheat___Nitrogen_Deficiency,Medium,Low nitrogen availability,Apply split nitrogen application,Maintain soil moisture,Use urea or ammonium nitrate
+Wheat___Nitrogen_Deficiency,High,Severe nitrogen deficiency,Immediate high nitrogen fertilizer application,Conduct soil testing,Apply nitrogen-rich NPK mix
+Wheat___Phosphorus_Deficiency,Low,Low phosphorus content,Apply SSP fertilizer lightly,Maintain soil pH,Use SSP fertilizer
+Wheat___Phosphorus_Deficiency,Medium,Reduced phosphorus uptake,Apply DAP at recommended rate,Improve soil drainage,Use DAP fertilizer
+Wheat___Phosphorus_Deficiency,High,Severe phosphorus depletion,Immediate phosphorus application,Adopt soil testing,Apply high-grade DAP
+Wheat___Potassium_Deficiency,Low,Low potassium in soil,Apply small potassium dose and monitor leaves,Avoid waterlogging,Use potassium fertilizer (MOP)
+Wheat___Potassium_Deficiency,Medium,Moderate potassium deficiency,Apply recommended potassium fertilizer,Maintain NPK balance,Use MOP fertilizer
+Wheat___Potassium_Deficiency,High,Severe potassium deficiency,Immediate potassium soil correction,Integrated nutrient management,Apply high potassium fertilizer
+Rice___Nitrogen_Deficiency,Low,Low nitrogen availability,Apply light urea dose and observe leaf color,Maintain water level properly,Use urea fertilizer
+Rice___Nitrogen_Deficiency,Medium,Moderate nitrogen deficiency,Apply split nitrogen application,Ensure proper irrigation control,Use urea or ammonium sulfate
+Rice___Nitrogen_Deficiency,High,Severe nitrogen depletion,Immediate nitrogen application with irrigation,Conduct soil test before replanting,Apply nitrogen-rich NPK
+Rice___Phosphorus_Deficiency,Low,Low phosphorus availability,Apply SSP lightly and monitor root growth,Maintain soil pH,Use SSP fertilizer
+Rice___Phosphorus_Deficiency,Medium,Moderate phosphorus deficiency,Apply DAP fertilizer as per recommendation,Improve drainage,Use DAP fertilizer
+Rice___Phosphorus_Deficiency,High,Severe phosphorus deficiency,Immediate phosphorus soil correction,Adopt soil testing practice,Apply concentrated DAP
+Rice___Potassium_Deficiency,Low,Low potassium in soil,Apply light potassium fertilizer,Maintain water balance,Use MOP fertilizer
+Rice___Potassium_Deficiency,Medium,Moderate potassium deficiency,Apply recommended potassium dose,Maintain balanced nutrients,Use MOP or SOP
+Rice___Potassium_Deficiency,High,Severe potassium depletion,Immediate potassium correction,Integrated nutrient management,Apply high potassium fertilizer
+Jowar___Nitrogen_Deficiency,Low,Insufficient nitrogen in soil,Apply light nitrogen dose,Practice crop rotation,Use urea fertilizer
+Jowar___Nitrogen_Deficiency,Medium,Moderate nitrogen deficiency,Apply recommended nitrogen fertilizer,Maintain irrigation balance,Use urea or ammonium nitrate
+Jowar___Nitrogen_Deficiency,High,Severe nitrogen depletion,Immediate nitrogen soil treatment,Conduct soil testing,Apply nitrogen-rich fertilizer
+Jowar___Phosphorus_Deficiency,Low,Low phosphorus availability,Apply SSP lightly,Maintain soil pH balance,Use SSP fertilizer
+Jowar___Phosphorus_Deficiency,Medium,Moderate phosphorus deficiency,Apply DAP fertilizer,Improve soil drainage,Use DAP fertilizer
+Jowar___Phosphorus_Deficiency,High,Severe phosphorus depletion,Immediate phosphorus correction,Adopt soil testing,Apply concentrated DAP
+Jowar___Potassium_Deficiency,Low,Low potassium content,Apply small potassium dose,Avoid excessive irrigation,Use MOP fertilizer
+Jowar___Potassium_Deficiency,Medium,Moderate potassium deficiency,Apply recommended potassium fertilizer,Maintain NPK ratio,Use MOP fertilizer
+Jowar___Potassium_Deficiency,High,Severe potassium deficiency,Immediate potassium soil treatment,Integrated nutrient management,Apply high potassium fertilizer
+Sugarcane___Nitrogen_Deficiency,Low,Low nitrogen in soil,Apply light nitrogen dose and monitor growth,Use organic compost,Apply urea fertilizer
+Sugarcane___Nitrogen_Deficiency,Medium,Moderate nitrogen deficiency,Apply split nitrogen application,Maintain irrigation balance,Use urea or ammonium nitrate
+Sugarcane___Nitrogen_Deficiency,High,Severe nitrogen depletion,Immediate high nitrogen application,Conduct soil test,Apply nitrogen-rich fertilizer
+Sugarcane___Phosphorus_Deficiency,Low,Low phosphorus availability,Apply SSP lightly,Maintain soil pH,Use SSP fertilizer
+Sugarcane___Phosphorus_Deficiency,Medium,Moderate phosphorus deficiency,Apply DAP fertilizer,Improve drainage,Use DAP fertilizer
+Sugarcane___Phosphorus_Deficiency,High,Severe phosphorus depletion,Immediate phosphorus correction,Adopt soil testing,Apply concentrated DAP
+Sugarcane___Potassium_Deficiency,Low,Low potassium levels,Apply small potassium dose,Maintain irrigation control,Use MOP fertilizer
+Sugarcane___Potassium_Deficiency,Medium,Moderate potassium deficiency,Apply recommended potassium fertilizer,Maintain NPK balance,Use MOP fertilizer
+Sugarcane___Potassium_Deficiency,High,Severe potassium depletion,Immediate potassium soil correction,Integrated nutrient management,Apply high potassium fertilizer
+Mango___Nitrogen_Deficiency,Low,Insufficient nitrogen in soil,Apply light nitrogen fertilizer and monitor leaf yellowing,Use organic compost,Apply urea fertilizer
+Mango___Nitrogen_Deficiency,Medium,Moderate nitrogen deficiency,Apply recommended nitrogen dose,Maintain soil moisture balance,Use nitrogen-rich fertilizer
+Mango___Nitrogen_Deficiency,High,Severe nitrogen depletion,Immediate nitrogen correction,Conduct soil testing,Apply high nitrogen fertilizer
+Mango___Phosphorus_Deficiency,Low,Low phosphorus availability,Apply SSP lightly and monitor root growth,Maintain soil pH balance,Use SSP fertilizer
+Mango___Phosphorus_Deficiency,Medium,Moderate phosphorus deficiency,Apply DAP fertilizer as recommended,Improve soil drainage,Use DAP fertilizer
+Mango___Phosphorus_Deficiency,High,Severe phosphorus depletion,Immediate phosphorus correction,Adopt soil testing practice,Apply concentrated DAP
+Mango___Potassium_Deficiency,Low,Low potassium levels,Apply small potassium dose and monitor leaf margins,Avoid overwatering,Use MOP fertilizer
+Mango___Potassium_Deficiency,Medium,Moderate potassium deficiency,Apply recommended potassium fertilizer,Maintain balanced nutrients,Use potassium fertilizer
+Mango___Potassium_Deficiency,High,Severe potassium depletion,Immediate potassium soil correction,Integrated nutrient management,Apply high potassium fertilizer

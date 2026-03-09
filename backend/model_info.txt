@@ -1,0 +1,1 @@
+Error: 'Conv2D' object has no attribute 'output_shape'

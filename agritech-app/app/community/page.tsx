@@ -18,6 +18,8 @@ const DiseaseMap = dynamic(() => import('@/components/DiseaseMap'), {
 
 import { useState } from 'react';
 import { supabase } from '@/lib/supabase';
+import { motion, AnimatePresence } from 'framer-motion';
+import { X, AlertTriangle, CheckCircle, Leaf } from 'lucide-react';
 
 export default function CommunityPage() {
     const { t } = useTranslation();
@@ -27,6 +29,41 @@ export default function CommunityPage() {
         description: ''
     });
     const [isSubmitting, setIsSubmitting] = useState(false);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const [selectedOutbreak, setSelectedOutbreak] = useState<any>(null);
+
+    const outbreaks = [
+        {
+            disease: 'Leaf Rust',
+            location: 'Within 5 km',
+            severity: 'High',
+            reports: 12,
+            cause: 'Rust fungus infection rapidly spreading due to high humidity.',
+            treatment: 'Apply recommended field dose of Spray propiconazole twice at 7-day interval.',
+            prevention: 'Use resistant varieties and apply nitrogen fertilizer moderately.',
+            fertilizer: 'Maintain balanced NPK ratio.'
+        },
+        {
+            disease: 'Blast Disease',
+            location: 'Within 10 km',
+            severity: 'Moderate',
+            reports: 8,
+            cause: 'Fungal blast infection worsened by recent unseasonal rains.',
+            treatment: 'Apply recommended field dose of Spray tricyclazole fungicide.',
+            prevention: 'Maintain proper plant spacing for air circulation.',
+            fertilizer: 'Increase potassium fertilizer to strengthen cell walls.'
+        },
+        {
+            disease: 'Aphid Infestation',
+            location: 'Within 3 km',
+            severity: 'Low',
+            reports: 5,
+            cause: 'Sap-sucking pests clustering on new tender growth.',
+            treatment: 'Use neem oil spray or release natural predators like ladybugs.',
+            prevention: 'Avoid over-fertilizing with nitrogen to prevent excessive tender shoots.',
+            fertilizer: 'Apply balanced organic compost.'
+        },
+    ];
 
     const handleSubmit = async () => {
         if (!formData.diseaseName || !formData.cropAffected) {
@@ -80,7 +117,7 @@ export default function CommunityPage() {
         <FarmerDashboardLayout>
             <div className="bg-white rounded-xl border border-gray-200 shadow-sm mb-6 p-6">
                 <h2 className="text-2xl font-bold text-gray-900 mb-4">{t('community.diseaseMap')}</h2>
-                <div className="h-64 sm:h-96">
+                <div className="h-64 sm:h-96 relative z-0">
                     <DiseaseMap />
                 </div>
             </div>
@@ -89,25 +126,24 @@ export default function CommunityPage() {
                 <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-6">
                     <h3 className="text-xl font-bold text-gray-900 mb-4">{t('community.recentOutbreaks')}</h3>
                     <div className="space-y-3">
-                        {[
-                            { disease: 'Leaf Rust', location: 'Within 5 km', severity: 'High', reports: 12 },
-                            { disease: 'Blast Disease', location: 'Within 10 km', severity: 'Moderate', reports: 8 },
-                            { disease: 'Aphid Infestation', location: 'Within 3 km', severity: 'Low', reports: 5 },
-                        ].map((outbreak, i) => (
-                            <div key={i} className="bg-gray-50 border border-gray-100 p-4 rounded-xl">
+                        {outbreaks.map((outbreak, i) => (
+                            <div
+                                key={i}
+                                onClick={() => setSelectedOutbreak(outbreak)}
+                                className="bg-gray-50 border border-gray-100 p-4 rounded-xl cursor-pointer hover:bg-green-50/50 hover:border-agri-green/30 transition-all shadow-sm hover:shadow-md group"
+                            >
                                 <div className="flex items-center justify-between mb-2">
-                                    <h4 className="text-gray-900 font-semibold">
-                                        {/* Ideally these should be localized too if hardcoded */}
+                                    <h4 className="text-gray-900 font-semibold group-hover:text-agri-green transition-colors">
                                         {t(`scan.diseases.${outbreak.disease === 'Leaf Rust' ? 'leafRust' : outbreak.disease === 'Blast Disease' ? 'blast' : 'aphids'}`) || outbreak.disease}
                                     </h4>
                                     <span className={`px-2 py-0.5 rounded text-xs font-bold uppercase ${outbreak.severity === 'High' ? 'bg-red-100 text-red-700' :
                                         outbreak.severity === 'Moderate' ? 'bg-amber-100 text-amber-700' :
                                             'bg-blue-100 text-blue-700'
                                         }`}>
-                                        {t(`community.${outbreak.severity.toLowerCase()}`)}
+                                        {t(`community.${outbreak.severity.toLowerCase()}`) || outbreak.severity}
                                     </span>
                                 </div>
-                                <p className="text-sm text-gray-500">{outbreak.location} • {outbreak.reports} {t('community.reports')}</p>
+                                <p className="text-sm text-gray-500">{outbreak.location} • {outbreak.reports} {t('community.reports') || 'reports'}</p>
                             </div>
                         ))}
                     </div>
@@ -147,6 +183,95 @@ export default function CommunityPage() {
                     </div>
                 </div>
             </div>
+
+            {/* Outbreak Details Modal */}
+            <AnimatePresence>
+                {selectedOutbreak && (
+                    <div className="fixed inset-0 z-[9999] flex items-center justify-center px-4">
+                        {/* Backdrop */}
+                        <motion.div
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            exit={{ opacity: 0 }}
+                            className="absolute inset-0 bg-black/60 backdrop-blur-sm"
+                            onClick={() => setSelectedOutbreak(null)}
+                        />
+
+                        {/* Modal Content */}
+                        <motion.div
+                            initial={{ scale: 0.95, opacity: 0, y: 20 }}
+                            animate={{ scale: 1, opacity: 1, y: 0 }}
+                            exit={{ scale: 0.95, opacity: 0, y: 20 }}
+                            className="bg-white rounded-2xl w-full max-w-lg relative z-10 overflow-hidden shadow-2xl border border-gray-100"
+                        >
+                            <div className={`h-2 w-full ${selectedOutbreak.severity === 'High' ? 'bg-red-500' : selectedOutbreak.severity === 'Moderate' ? 'bg-amber-500' : 'bg-blue-500'}`} />
+
+                            <div className="p-6 sm:p-8 max-h-[85vh] overflow-y-auto">
+                                <button
+                                    onClick={() => setSelectedOutbreak(null)}
+                                    className="absolute top-6 right-6 p-2 bg-gray-100 text-gray-500 hover:text-red-500 hover:bg-red-50 rounded-full transition-colors"
+                                >
+                                    <X size={20} />
+                                </button>
+
+                                <div className="pr-12 mb-6">
+                                    <h3 className="text-2xl font-bold text-gray-900 mb-2">{selectedOutbreak.disease}</h3>
+                                    <div className="flex flex-wrap items-center gap-3">
+                                        <span className={`px-3 py-1 rounded-full text-xs font-bold uppercase flex items-center gap-1.5 ${selectedOutbreak.severity === 'High' ? 'bg-red-100 text-red-700' : selectedOutbreak.severity === 'Moderate' ? 'bg-amber-100 text-amber-700' : 'bg-blue-100 text-blue-700'}`}>
+                                            <AlertTriangle size={14} /> {selectedOutbreak.severity || 'High'} Spread Risk
+                                        </span>
+                                        <span className="text-sm font-semibold text-gray-500 bg-gray-100 px-3 py-1 rounded-full border border-gray-200">
+                                            ⚠️ {selectedOutbreak.reports} fields affected {selectedOutbreak.location.toLowerCase()}
+                                        </span>
+                                    </div>
+                                </div>
+
+                                <div className="space-y-4">
+                                    {/* Cause */}
+                                    <div className="bg-blue-50 rounded-xl p-4 border border-blue-100">
+                                        <h4 className="text-sm font-bold text-blue-900 mb-2 flex items-center gap-2">
+                                            <AlertTriangle size={16} /> Cause
+                                        </h4>
+                                        <p className="text-sm text-blue-800 leading-relaxed font-medium">
+                                            {selectedOutbreak.cause}
+                                        </p>
+                                    </div>
+
+                                    {/* Treatment Solution */}
+                                    <div className="bg-green-50 rounded-xl p-4 border border-green-100">
+                                        <h4 className="text-sm font-bold text-green-900 mb-3 flex items-center gap-2">
+                                            <CheckCircle size={16} /> Treatment Solution
+                                        </h4>
+                                        <p className="text-sm text-green-800 leading-relaxed font-medium">
+                                            {selectedOutbreak.treatment}
+                                        </p>
+                                    </div>
+
+                                    {/* Prevention */}
+                                    <div className="bg-purple-50 rounded-xl p-4 border border-purple-100">
+                                        <h4 className="text-sm font-bold text-purple-900 mb-3 flex items-center gap-2">
+                                            <AlertTriangle size={16} /> Prevention Tips
+                                        </h4>
+                                        <p className="text-sm text-purple-800 leading-relaxed font-medium">
+                                            {selectedOutbreak.prevention}
+                                        </p>
+                                    </div>
+
+                                    {/* Fertilizer Recommendation */}
+                                    <div className="bg-amber-50 rounded-xl p-4 border border-amber-100">
+                                        <h4 className="text-sm font-bold text-amber-900 mb-2 flex items-center gap-2">
+                                            <Leaf size={16} /> Local Fertilizer Recommendation
+                                        </h4>
+                                        <p className="text-sm text-amber-800 leading-relaxed font-medium">
+                                            {selectedOutbreak.fertilizer}
+                                        </p>
+                                    </div>
+                                </div>
+                            </div>
+                        </motion.div>
+                    </div>
+                )}
+            </AnimatePresence>
         </FarmerDashboardLayout>
     );
 }

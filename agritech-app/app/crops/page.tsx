@@ -8,6 +8,7 @@ import { Plus, Filter, MoreHorizontal, Sprout, MapPin, Calendar, X, Save, Drople
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/lib/supabase';
 import { AnimatePresence } from 'framer-motion';
+import { useRouter } from 'next/navigation';
 
 export default function MyCropsPage() {
     const { t } = useTranslation();
@@ -16,6 +17,7 @@ export default function MyCropsPage() {
     const [isId, setIsId] = useState<number | null>(null); // For Read More expansion
     const [showModal, setShowModal] = useState(false);
     const [loading, setLoading] = useState(false);
+    const router = useRouter();
 
     // Initial static data (would be fetched in real app)
     const [crops, setCrops] = useState([
@@ -25,7 +27,18 @@ export default function MyCropsPage() {
         { id: 4, name: 'cotton', variety: 'Bt Cotton', health: 'healthy', area: '2.5 acres', stage: 'flowering', icon: '🌸', progress: 70, planted: '20 Dec 2025' },
     ]);
 
-    const [newCrop, setNewCrop] = useState({ name: 'Wheat', variety: '', area: '', planted: '' });
+    const [newCrop, setNewCrop] = useState({
+        name: 'Wheat',
+        variety: '',
+        area: '',
+        planted: '',
+        location: '',
+        soilType: 'Black Soil',
+        irrigationType: 'Rainfed',
+        previousCrop: '',
+        seedType: 'Hybrid',
+        notes: ''
+    });
 
     const filteredCrops = filter === 'all' ? crops : crops.filter(c => c.health === filter);
 
@@ -40,21 +53,32 @@ export default function MyCropsPage() {
                 variety: newCrop.variety,
                 area: newCrop.area,
                 planted_date: newCrop.planted,
+                location: newCrop.location,
+                soil_type: newCrop.soilType,
+                irrigation_type: newCrop.irrigationType,
+                previous_crop: newCrop.previousCrop,
+                seed_type: newCrop.seedType,
+                notes: newCrop.notes,
                 health: 'healthy',
                 stage: 'vegetative',
-                progress: 10
+                progress: 10,
+                created_at: new Date().toISOString()
             };
 
             // Try saving to DB (Fail gracefully if table missing in demo)
             await supabase.from('crops').insert(cropData);
 
             // Optimistic update
-            const nextId = Math.max(...crops.map(c => c.id)) + 1;
+            const nextId = Math.max(0, ...crops.map(c => c.id)) + 1;
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
             setCrops(prev => [{ ...cropData, id: nextId, icon: '🌱', planted: new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }) } as any, ...prev]);
 
             setShowModal(false);
-            setNewCrop({ name: 'Wheat', variety: '', area: '', planted: '' });
+            setNewCrop({
+                name: 'Wheat', variety: '', area: '', planted: '',
+                location: '', soilType: 'Black Soil', irrigationType: 'Rainfed',
+                previousCrop: '', seedType: 'Hybrid', notes: ''
+            });
             alert("✅ Crop added successfully!");
 
         } catch (e) {
@@ -116,7 +140,8 @@ export default function MyCropsPage() {
                             animate={{ y: 0, opacity: 1 }}
                             whileHover={{ y: -4 }}
                             transition={{ duration: 0.2 }}
-                            className="bg-white rounded-xl border border-gray-100 shadow-sm hover:shadow-md transition-all overflow-hidden group"
+                            onClick={() => router.push(`/crops/${crop.id}`)}
+                            className="bg-white rounded-xl border border-gray-100 shadow-sm hover:shadow-md transition-all overflow-hidden group cursor-pointer"
                         >
                             {/* Card Header image placeholder or color strip */}
                             <div className="h-2 bg-gradient-to-r from-agri-green to-emerald-400"></div>
@@ -218,7 +243,7 @@ export default function MyCropsPage() {
                     </div>
                     <h3 className="text-lg font-bold text-gray-900 mb-1">{t('crop.noCrops')}</h3>
                     <p className="text-sm text-gray-500 mb-6">{t('crop.addFirst')}</p>
-                    <button className="text-sm font-semibold text-agri-green border border-agri-green px-4 py-2 rounded-lg hover:bg-agri-green hover:text-white transition-colors">
+                    <button onClick={() => setShowModal(true)} className="text-sm font-semibold text-agri-green border border-agri-green px-4 py-2 rounded-lg hover:bg-agri-green hover:text-white transition-colors">
                         {t('crop.addNew')}
                     </button>
                 </div>
@@ -227,70 +252,180 @@ export default function MyCropsPage() {
             {/* Add Crop Modal */}
             <AnimatePresence>
                 {showModal && (
-                    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+                    <div
+                        className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm overflow-y-auto"
+                        onClick={() => setShowModal(false)}
+                    >
                         <motion.div
-                            initial={{ scale: 0.95, opacity: 0 }}
-                            animate={{ scale: 1, opacity: 1 }}
-                            exit={{ scale: 0.95, opacity: 0 }}
-                            className="bg-white rounded-2xl shadow-xl w-full max-w-md overflow-hidden"
+                            initial={{ scale: 0.95, opacity: 0, y: 20 }}
+                            animate={{ scale: 1, opacity: 1, y: 0 }}
+                            exit={{ scale: 0.95, opacity: 0, y: 20 }}
+                            onClick={(e) => e.stopPropagation()}
+                            className="bg-white rounded-2xl shadow-xl w-full max-w-2xl overflow-hidden my-8"
                         >
-                            <div className="p-6 border-b border-gray-100 flex justify-between items-center bg-gray-50">
-                                <h3 className="text-lg font-bold text-gray-900">{t('crop.addNew')}</h3>
-                                <button onClick={() => setShowModal(false)} className="text-gray-400 hover:text-red-500">
-                                    <X size={20} />
+                            <div className="p-6 border-b border-gray-100 flex justify-between items-center bg-gray-50/50 sticky top-0 z-10">
+                                <h3 className="text-xl font-bold text-gray-900 flex items-center gap-2">
+                                    <Sprout className="text-agri-green" size={24} />
+                                    Add New Crop
+                                </h3>
+                                <button onClick={() => setShowModal(false)} className="text-gray-400 hover:text-red-500 transition-colors p-1.5 hover:bg-red-50 rounded-full">
+                                    <X size={22} />
                                 </button>
                             </div>
-                            <div className="p-6 space-y-4">
-                                <div>
-                                    <label className="block text-xs font-bold text-gray-500 uppercase mb-1">{t('crop_data.wheat')} / Name</label>
-                                    <select
-                                        className="w-full p-3 border rounded-lg bg-white"
-                                        value={newCrop.name}
-                                        onChange={e => setNewCrop({ ...newCrop, name: e.target.value })}
-                                    >
-                                        {['Wheat', 'Rice', 'Sugarcane', 'Cotton', 'Maize', 'Tomato'].map(c => (
-                                            <option key={c} value={c}>{c}</option>
-                                        ))}
-                                    </select>
+
+                            <div className="p-6 max-h-[70vh] overflow-y-auto custom-scrollbar">
+                                {/* Basic Details */}
+                                <div className="mb-6">
+                                    <h4 className="text-sm font-bold text-gray-900 uppercase tracking-wider mb-4 pb-2 border-b border-gray-100/60">Basic Details</h4>
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                                        <div>
+                                            <label className="block text-xs font-bold text-gray-700 uppercase mb-1.5">Crop Name</label>
+                                            <select
+                                                className="w-full p-3 border border-gray-200 rounded-lg bg-gray-50/50 focus:ring-2 focus:ring-agri-green/20 focus:border-agri-green transition-all outline-none"
+                                                value={newCrop.name}
+                                                onChange={e => setNewCrop({ ...newCrop, name: e.target.value })}
+                                            >
+                                                {['Wheat', 'Rice', 'Cotton', 'Sugarcane', 'Maize'].map(c => (
+                                                    <option key={c} value={c}>{c}</option>
+                                                ))}
+                                            </select>
+                                        </div>
+                                        <div>
+                                            <label className="block text-xs font-bold text-gray-700 uppercase mb-1.5">Variety</label>
+                                            <input
+                                                type="text"
+                                                className="w-full p-3 border border-gray-200 rounded-lg bg-gray-50/50 focus:ring-2 focus:ring-agri-green/20 focus:border-agri-green transition-all outline-none"
+                                                placeholder="e.g. HD-2967"
+                                                value={newCrop.variety}
+                                                onChange={e => setNewCrop({ ...newCrop, variety: e.target.value })}
+                                            />
+                                        </div>
+                                        <div>
+                                            <label className="block text-xs font-bold text-gray-700 uppercase mb-1.5">Area (Acres)</label>
+                                            <input
+                                                type="number"
+                                                min="0"
+                                                step="0.1"
+                                                className="w-full p-3 border border-gray-200 rounded-lg bg-gray-50/50 focus:ring-2 focus:ring-agri-green/20 focus:border-agri-green transition-all outline-none"
+                                                placeholder="e.g. 2.5"
+                                                value={newCrop.area}
+                                                onChange={e => setNewCrop({ ...newCrop, area: e.target.value })}
+                                            />
+                                        </div>
+                                        <div>
+                                            <label className="block text-xs font-bold text-gray-700 uppercase mb-1.5">Planted Date</label>
+                                            <input
+                                                type="date"
+                                                className="w-full p-3 border border-gray-200 rounded-lg bg-gray-50/50 focus:ring-2 focus:ring-agri-green/20 focus:border-agri-green transition-all outline-none"
+                                                value={newCrop.planted}
+                                                onChange={e => setNewCrop({ ...newCrop, planted: e.target.value })}
+                                            />
+                                        </div>
+                                    </div>
                                 </div>
-                                <div>
-                                    <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Variety</label>
-                                    <input
-                                        type="text"
-                                        className="w-full p-3 border rounded-lg"
-                                        placeholder="e.g. HD-2967"
-                                        value={newCrop.variety}
-                                        onChange={e => setNewCrop({ ...newCrop, variety: e.target.value })}
-                                    />
+
+                                {/* Farm Details */}
+                                <div className="mb-6">
+                                    <h4 className="text-sm font-bold text-gray-900 uppercase tracking-wider mb-4 pb-2 border-b border-gray-100/60">Farm Details</h4>
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                                        <div className="md:col-span-2">
+                                            <label className="block text-xs font-bold text-gray-700 uppercase mb-1.5 flex justify-between">
+                                                <span>Farm Location</span>
+                                                <button
+                                                    onClick={() => {
+                                                        if (navigator.geolocation) {
+                                                            navigator.geolocation.getCurrentPosition(
+                                                                (pos) => setNewCrop({ ...newCrop, location: `${pos.coords.latitude.toFixed(4)}, ${pos.coords.longitude.toFixed(4)}` }),
+                                                                () => alert("Location permission denied.")
+                                                            );
+                                                        }
+                                                    }}
+                                                    className="text-agri-green hover:underline flex items-center gap-1"
+                                                >
+                                                    <MapPin size={12} /> Auto-detect
+                                                </button>
+                                            </label>
+                                            <input
+                                                type="text"
+                                                className="w-full p-3 border border-gray-200 rounded-lg bg-gray-50/50 focus:ring-2 focus:ring-agri-green/20 focus:border-agri-green transition-all outline-none"
+                                                placeholder="Village / District or GPS Coordinates"
+                                                value={newCrop.location}
+                                                onChange={e => setNewCrop({ ...newCrop, location: e.target.value })}
+                                            />
+                                        </div>
+                                        <div>
+                                            <label className="block text-xs font-bold text-gray-700 uppercase mb-1.5">Soil Type</label>
+                                            <select
+                                                className="w-full p-3 border border-gray-200 rounded-lg bg-gray-50/50 focus:ring-2 focus:ring-agri-green/20 focus:border-agri-green transition-all outline-none"
+                                                value={newCrop.soilType}
+                                                onChange={e => setNewCrop({ ...newCrop, soilType: e.target.value })}
+                                            >
+                                                {['Black Soil', 'Red Soil', 'Alluvial Soil', 'Sandy Soil', 'Clay Soil'].map(c => (
+                                                    <option key={c} value={c}>{c}</option>
+                                                ))}
+                                            </select>
+                                        </div>
+                                        <div>
+                                            <label className="block text-xs font-bold text-gray-700 uppercase mb-1.5">Irrigation Type</label>
+                                            <select
+                                                className="w-full p-3 border border-gray-200 rounded-lg bg-gray-50/50 focus:ring-2 focus:ring-agri-green/20 focus:border-agri-green transition-all outline-none"
+                                                value={newCrop.irrigationType}
+                                                onChange={e => setNewCrop({ ...newCrop, irrigationType: e.target.value })}
+                                            >
+                                                {['Rainfed', 'Drip Irrigation', 'Sprinkler', 'Canal Irrigation', 'Borewell'].map(c => (
+                                                    <option key={c} value={c}>{c}</option>
+                                                ))}
+                                            </select>
+                                        </div>
+                                        <div>
+                                            <label className="block text-xs font-bold text-gray-700 uppercase mb-1.5">Previous Crop</label>
+                                            <input
+                                                type="text"
+                                                className="w-full p-3 border border-gray-200 rounded-lg bg-gray-50/50 focus:ring-2 focus:ring-agri-green/20 focus:border-agri-green transition-all outline-none"
+                                                placeholder="e.g. Soybean"
+                                                value={newCrop.previousCrop}
+                                                onChange={e => setNewCrop({ ...newCrop, previousCrop: e.target.value })}
+                                            />
+                                        </div>
+                                        <div>
+                                            <label className="block text-xs font-bold text-gray-700 uppercase mb-1.5">Seed Type</label>
+                                            <select
+                                                className="w-full p-3 border border-gray-200 rounded-lg bg-gray-50/50 focus:ring-2 focus:ring-agri-green/20 focus:border-agri-green transition-all outline-none"
+                                                value={newCrop.seedType}
+                                                onChange={e => setNewCrop({ ...newCrop, seedType: e.target.value })}
+                                            >
+                                                {['Hybrid', 'Certified', 'Local'].map(c => (
+                                                    <option key={c} value={c}>{c}</option>
+                                                ))}
+                                            </select>
+                                        </div>
+                                    </div>
                                 </div>
+
+                                {/* Optional Fields */}
                                 <div>
-                                    <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Area (Acres)</label>
-                                    <input
-                                        type="text"
-                                        className="w-full p-3 border rounded-lg"
-                                        placeholder="e.g. 2.5 acres"
-                                        value={newCrop.area}
-                                        onChange={e => setNewCrop({ ...newCrop, area: e.target.value })}
-                                    />
-                                </div>
-                                <div>
-                                    <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Planted Date</label>
-                                    <input
-                                        type="date"
-                                        className="w-full p-3 border rounded-lg"
-                                        value={newCrop.planted}
-                                        onChange={e => setNewCrop({ ...newCrop, planted: e.target.value })}
-                                    />
+                                    <h4 className="text-sm font-bold text-gray-900 uppercase tracking-wider mb-4 pb-2 border-b border-gray-100/60">Optional</h4>
+                                    <div>
+                                        <label className="block text-xs font-bold text-gray-700 uppercase mb-1.5">Notes / Remarks</label>
+                                        <textarea
+                                            rows={3}
+                                            className="w-full p-3 border border-gray-200 rounded-lg bg-gray-50/50 focus:ring-2 focus:ring-agri-green/20 focus:border-agri-green transition-all outline-none resize-none"
+                                            placeholder="Add any extra notes here..."
+                                            value={newCrop.notes}
+                                            onChange={e => setNewCrop({ ...newCrop, notes: e.target.value })}
+                                        />
+                                    </div>
                                 </div>
                             </div>
-                            <div className="p-6 border-t border-gray-100 bg-gray-50 flex gap-3">
-                                <button onClick={() => setShowModal(false)} className="flex-1 py-3 text-gray-600 font-semibold hover:bg-gray-200 rounded-lg transition-colors">
+
+                            <div className="p-6 border-t border-gray-100 bg-white flex gap-3 sticky bottom-0 z-10">
+                                <button onClick={() => setShowModal(false)} className="flex-1 py-3 text-gray-700 font-bold hover:bg-gray-100 bg-gray-50 border border-gray-200 rounded-xl transition-colors shadow-sm">
                                     {t('common.cancel')}
                                 </button>
                                 <button
                                     onClick={handleAddCrop}
                                     disabled={loading}
-                                    className="flex-1 py-3 bg-agri-green text-white font-bold rounded-lg hover:bg-green-700 transition-colors flex items-center justify-center gap-2"
+                                    className="flex-1 py-3 bg-agri-green text-white font-bold rounded-xl hover:bg-green-700 transition-colors flex items-center justify-center gap-2 shadow-sm disabled:opacity-50"
                                 >
                                     {loading ? 'Saving...' : <><Save size={18} /> {t('common.save')}</>}
                                 </button>

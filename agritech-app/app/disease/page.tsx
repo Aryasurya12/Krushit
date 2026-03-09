@@ -6,7 +6,7 @@ import { useTranslation } from 'react-i18next';
 import { Upload, Camera, AlertTriangle, CheckCircle, FileText, Share2, Save, X, Leaf } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
-import jsPDF from 'jspdf';
+import { jsPDF } from 'jspdf';
 import autoTable from 'jspdf-autotable';
 
 import { useAuth } from '@/contexts/AuthContext';
@@ -17,11 +17,14 @@ export default function ScanCropPage() {
     const { user } = useAuth();
     const [selectedFile, setSelectedFile] = useState<File | null>(null);
     const [selectedImage, setSelectedImage] = useState<string | null>(null);
+    const [isCameraActive, setIsCameraActive] = useState(false);
     const [analyzing, setAnalyzing] = useState(false);
     const [saving, setSaving] = useState(false);
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const [result, setResult] = useState<any>(null);
     const fileInputRef = useRef<HTMLInputElement>(null);
+    const videoRef = useRef<HTMLVideoElement>(null);
+    const streamRef = useRef<MediaStream | null>(null);
 
     const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
@@ -31,8 +34,62 @@ export default function ScanCropPage() {
             reader.onloadend = () => {
                 setSelectedImage(reader.result as string);
                 setResult(null);
+                setIsCameraActive(false);
             };
             reader.readAsDataURL(file);
+        }
+    };
+
+    const startCamera = async () => {
+        try {
+            const stream = await navigator.mediaDevices.getUserMedia({
+                video: { facingMode: 'environment', width: { ideal: 1024 }, height: { ideal: 1024 } }
+            });
+            if (videoRef.current) {
+                videoRef.current.srcObject = stream;
+            }
+            streamRef.current = stream;
+            setIsCameraActive(true);
+            setSelectedImage(null);
+            setResult(null);
+        } catch (err) {
+            console.error("Camera access denied:", err);
+            alert("Camera access denied. Please check permissions.");
+        }
+    };
+
+    const stopCamera = () => {
+        if (streamRef.current) {
+            streamRef.current.getTracks().forEach(track => track.stop());
+            streamRef.current = null;
+        }
+        setIsCameraActive(false);
+    };
+
+    const capturePhoto = () => {
+        if (videoRef.current) {
+            const canvas = document.createElement('canvas');
+            canvas.width = videoRef.current.videoWidth;
+            canvas.height = videoRef.current.videoHeight;
+            const ctx = canvas.getContext('2d');
+            if (ctx) {
+                ctx.drawImage(videoRef.current, 0, 0);
+                const dataUrl = canvas.toDataURL('image/jpeg', 0.9);
+                setSelectedImage(dataUrl);
+
+                // Convert to file for analysis
+                const byteString = atob(dataUrl.split(',')[1]);
+                const mimeString = dataUrl.split(',')[0].split(':')[1].split(';')[0];
+                const ab = new ArrayBuffer(byteString.length);
+                const ia = new Uint8Array(ab);
+                for (let i = 0; i < byteString.length; i++) {
+                    ia[i] = byteString.charCodeAt(i);
+                }
+                const blob = new Blob([ab], { type: mimeString });
+                const file = new File([blob], "camera_capture.jpg", { type: mimeString });
+                setSelectedFile(file);
+                stopCamera();
+            }
         }
     };
 
@@ -62,9 +119,9 @@ export default function ScanCropPage() {
             // Backend returns: disease, confidence, severity, cause, treatment, prevention, fertilizer
             setResult({
                 disease: data.disease,
-                diseaseLocal: data.disease,
+                diseaseLocal: data.disease.startsWith('Unknown') ? data.disease : data.disease,
                 confidence: data.confidence,
-                severity: (data.severity as string).toLowerCase(), // "High"→"high" for CSS class matching
+                severity: (data.severity as string).toLowerCase(),
                 cause: data.cause,
                 treatment: data.treatment,
                 prevention: data.prevention,
@@ -90,7 +147,7 @@ export default function ScanCropPage() {
     };
 
     const handleSave = async () => {
-        if (!result || !user || result.disease === 'Error') return;
+        if (!result || result.disease === 'Error') return;
 
         setSaving(true);
         try {
@@ -140,26 +197,32 @@ export default function ScanCropPage() {
             }
 
             // Save PDF
-            doc.save(`Disease_Report_${result.disease.replace(/\s+/g, '_')}.pdf`);
+            const fileName = result.disease.startsWith('Unknown')
+                ? `Scan_Report_Index_${result.disease.split('_').pop()}.pdf`
+                : `Disease_Report_${result.disease.replace(/\s+/g, '_')}.pdf`;
+            doc.save(fileName);
 
             // 2. Try Save to Supabase (Best Effort)
-            try {
-                const { error } = await supabase.from('disease_scans').insert({
-                    user_id: user.id,
-                    disease_detected: result.disease,
-                    confidence: result.confidence,
-                    severity: result.severity,
-                    image_url: selectedImage || '',
-                    treatment: result.treatment || '',
-                    prevention: result.prevention || ''
-                });
+            if (user) {
+                try {
+                    const { error } = await supabase.from('disease_scans').insert({
+                        user_id: user.id,
+                        disease_detected: result.disease,
+                        confidence: result.confidence,
+                        severity: result.severity,
+                        image_url: selectedImage || '',
+                        treatment: result.treatment || '',
+                        prevention: result.prevention || ''
+                    });
 
-                if (error) throw error;
-                alert('✅ Report saved to cloud & downloaded!');
-            } catch (dbError: any) { // eslint-disable-line @typescript-eslint/no-explicit-any
-                console.warn('Cloud save failed (RLS likely):', dbError);
-                // Friendly message acknowledging success despite partial failure
-                alert('⚠️ Report downloaded. (Cloud save failed due to permissions)');
+                    if (error) throw error;
+                    alert('✅ Report saved to cloud & downloaded!');
+                } catch (dbError: any) { // eslint-disable-line @typescript-eslint/no-explicit-any
+                    console.warn('Cloud save failed (RLS likely):', dbError);
+                    alert('⚠️ Report downloaded. (Cloud save failed due to permissions)');
+                }
+            } else {
+                alert('✅ Report downloaded! (Log in to save to cloud history)');
             }
 
         } catch (error: any) { // eslint-disable-line @typescript-eslint/no-explicit-any
@@ -209,8 +272,7 @@ export default function ScanCropPage() {
 
                             {/* Drop Zone */}
                             <div
-                                onClick={() => fileInputRef.current?.click()}
-                                className={`border-2 border-dashed rounded-xl h-64 flex flex-col items-center justify-center cursor-pointer transition-all duration-200 relative overflow-hidden group ${selectedImage ? 'border-agri-green/50 bg-gray-50' : 'border-gray-300 hover:border-agri-green hover:bg-green-50/50'
+                                className={`border-2 border-dashed rounded-xl h-80 flex flex-col items-center justify-center transition-all duration-200 relative overflow-hidden group ${selectedImage || isCameraActive ? 'border-agri-green/50 bg-gray-50' : 'border-gray-300'
                                     }`}
                             >
                                 <input
@@ -221,7 +283,30 @@ export default function ScanCropPage() {
                                     className="hidden"
                                 />
 
-                                {selectedImage ? (
+                                {isCameraActive ? (
+                                    <div className="w-full h-full relative">
+                                        <video
+                                            ref={videoRef}
+                                            autoPlay
+                                            playsInline
+                                            className="w-full h-full object-cover"
+                                        />
+                                        <div className="absolute bottom-4 left-0 right-0 flex justify-center gap-4">
+                                            <button
+                                                onClick={capturePhoto}
+                                                className="bg-agri-green text-white p-4 rounded-full shadow-lg hover:scale-110 active:scale-95 transition-transform"
+                                            >
+                                                <Camera size={24} />
+                                            </button>
+                                            <button
+                                                onClick={stopCamera}
+                                                className="bg-red-500 text-white p-4 rounded-full shadow-lg hover:scale-110 active:scale-95 transition-transform"
+                                            >
+                                                <X size={24} />
+                                            </button>
+                                        </div>
+                                    </div>
+                                ) : selectedImage ? (
                                     <>
                                         {/* eslint-disable-next-line @next/next/no-img-element */}
                                         <img src={selectedImage} alt="Crop" className="w-full h-full object-contain p-2" />
@@ -237,7 +322,10 @@ export default function ScanCropPage() {
                                         </button>
                                     </>
                                 ) : (
-                                    <div className="text-center p-6">
+                                    <div
+                                        onClick={() => fileInputRef.current?.click()}
+                                        className="text-center p-6 cursor-pointer w-full h-full flex flex-col items-center justify-center hover:bg-green-50/50 transition-colors"
+                                    >
                                         <div className="w-16 h-16 bg-green-100/50 rounded-full flex items-center justify-center mx-auto mb-4 group-hover:scale-110 transition-transform">
                                             <Upload size={32} className="text-agri-green/80" />
                                         </div>
@@ -247,28 +335,42 @@ export default function ScanCropPage() {
                                 )}
                             </div>
 
-                            <div className="mt-6 flex gap-3">
-                                <button
-                                    onClick={() => fileInputRef.current?.click()}
-                                    className="flex-1 py-3 px-4 rounded-xl border border-gray-200 text-gray-700 font-semibold hover:bg-gray-50 transition-colors flex items-center justify-center gap-2 text-sm"
-                                >
-                                    <FileText size={18} /> {t('scan.selectFile')}
-                                </button>
+                            <div className="mt-6 space-y-3">
+                                {!isCameraActive && (
+                                    <div className="flex gap-3">
+                                        <button
+                                            onClick={() => fileInputRef.current?.click()}
+                                            className="flex-1 py-3 px-4 rounded-xl border border-gray-200 text-gray-700 font-semibold hover:bg-gray-50 transition-colors flex items-center justify-center gap-2 text-sm"
+                                        >
+                                            <Upload size={18} /> {t('scan.selectFile')}
+                                        </button>
+                                        <button
+                                            onClick={startCamera}
+                                            className="flex-1 py-3 px-4 rounded-xl border border-agri-green text-agri-green font-semibold hover:bg-green-50 transition-colors flex items-center justify-center gap-2 text-sm"
+                                        >
+                                            <Camera size={18} /> {t('scan.takePhoto')}
+                                        </button>
+                                    </div>
+                                )}
+
                                 <button
                                     onClick={handleAnalyze}
                                     disabled={!selectedImage || analyzing}
-                                    className={`flex-1 py-3 px-4 rounded-xl text-white font-semibold transition-all flex items-center justify-center gap-2 text-sm shadow-md ${!selectedImage || analyzing
+                                    className={`w-full py-4 px-4 rounded-xl text-white font-bold transition-all flex items-center justify-center gap-2 text-base shadow-lg ${!selectedImage || analyzing
                                         ? 'bg-gray-300 cursor-not-allowed shadow-none'
-                                        : 'bg-gradient-to-r from-agri-green to-emerald-600 hover:shadow-lg hover:-translate-y-0.5'
+                                        : 'bg-gradient-to-r from-agri-green to-emerald-600 hover:shadow-agri-green/30 hover:-translate-y-0.5'
                                         }`}
                                 >
                                     {analyzing ? (
                                         <span className="flex items-center gap-2">
-                                            <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></span>
+                                            <span className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></span>
                                             {t('scan.analyzing')}
                                         </span>
                                     ) : (
-                                        <>{t('scan.analyze')}</>
+                                        <>
+                                            <Leaf size={20} />
+                                            {t('scan.analyze')}
+                                        </>
                                     )}
                                 </button>
                             </div>

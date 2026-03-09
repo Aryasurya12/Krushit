@@ -91,6 +91,7 @@
         "clickUpload": "Click to upload or drag & drop",
         "supports": "Supports JPG, PNG (Max 5MB)",
         "selectFile": "Select File",
+        "takePhoto": "Take Photo",
         "analyze": "Analyze Crop",
         "analyzing": "Analyzing...",
         "tipTitle": "For best results",

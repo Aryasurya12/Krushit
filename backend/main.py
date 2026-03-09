@@ -13,6 +13,13 @@ from dotenv import load_dotenv
 # Load env variables
 load_dotenv()
 
+from supabase import create_client, Client
+
+# Supabase Setup
+SUPABASE_URL = os.getenv("SUPABASE_URL")
+SUPABASE_KEY = os.getenv("SUPABASE_KEY")
+supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY) if SUPABASE_URL and SUPABASE_KEY else None
+
 # Configure logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("agritech-ml-api")
@@ -30,6 +37,31 @@ class ChatRequest(BaseModel):
     history: list = []
     language: str = "en"
 
+# New Models for Social & Operations
+class PostCreate(BaseModel):
+    user_id: str
+    content: str
+    image_url: str = None
+
+class CommentCreate(BaseModel):
+    user_id: str
+    post_id: str
+    content: str
+
+class TaskCreate(BaseModel):
+    user_id: str
+    title: str
+    description: str = None
+    due_date: str = None
+    priority: str = "Medium"
+
+class GrowthLogCreate(BaseModel):
+    crop_id: str
+    height_cm: float = None
+    leaf_count: int = None
+    notes: str = None
+    image_url: str = None
+
 # Internal imports
 from models.translations import get_local_translation
 from utils.image_processing import preprocess_image
@@ -42,9 +74,47 @@ BASE_DIR   = os.path.dirname(os.path.abspath(__file__))          # .../backend
 APP_DIR    = os.path.join(BASE_DIR, "..", "agritech-app")         # .../agritech-app
 MODEL_PATH = os.path.join(APP_DIR, "plant_disease_model.h5")
 CLASS_PATH = os.path.join(APP_DIR, "class_names.json")
+CSV_PATH   = os.path.join(APP_DIR, "master_recommendation_dataset.csv")
 
 # ──────────────────────────────────────────────────────────────────────────────
-# 2. Load class names
+# 2. Load and Prepare recommendation database
+# ──────────────────────────────────────────────────────────────────────────────
+RECOMMENDATION_DB = {}
+
+def load_recommendations():
+    """Load the CSV into a nested dictionary: {disease_name: {severity: info_dict}}"""
+    import csv
+    global RECOMMENDATION_DB
+    print(f"⏳ Loading recommendations from {os.path.abspath(CSV_PATH)}...")
+    try:
+        if not os.path.exists(CSV_PATH):
+            print(f"⚠️ Recommendation CSV not found at {CSV_PATH}")
+            return
+
+        with open(CSV_PATH, mode='r', encoding='utf-8') as f:
+            reader = csv.DictReader(f)
+            for row in reader:
+                d_name = row['disease_name']
+                sev    = row['severity']
+                
+                if d_name not in RECOMMENDATION_DB:
+                    RECOMMENDATION_DB[d_name] = {}
+                
+                RECOMMENDATION_DB[d_name][sev] = {
+                    "cause":      row['cause'],
+                    "treatment":  row['treatment_solution'],
+                    "prevention": row['prevention_tips'],
+                    "fertilizer": row['fertilizer_recommendation']
+                }
+        print(f"✅ Loaded recommendations for {len(RECOMMENDATION_DB)} diseases.")
+    except Exception as e:
+        print(f"❌ Failed to load recommendation CSV: {e}")
+
+# Initial load
+load_recommendations()
+
+# ──────────────────────────────────────────────────────────────────────────────
+# 2.5 Load class names
 # ──────────────────────────────────────────────────────────────────────────────
 print(f"⏳ Loading class names from {os.path.abspath(CLASS_PATH)}...")
 try:
@@ -53,7 +123,7 @@ try:
     # raw is {"0": "Corn___Common_Rust", "1": ..., ...}
     # Build an ordered list by integer key
     class_names = [raw[str(i)] for i in range(len(raw))]
-    print(f"✅ Loaded {len(class_names)} class names: {class_names}")
+    print(f"✅ Loaded {len(class_names)} class names.")
 except Exception as e:
     print(f"❌ Failed to load class names: {e}")
     class_names = []
@@ -210,15 +280,27 @@ DISEASE_DB = {
     }
 }
 
-def get_disease_info(class_label: str) -> dict:
-    """Return disease details from DB. Normalise underscores/spaces for lookup."""
+def get_disease_info(class_label: str, severity: str = "Medium") -> dict:
+    """Return disease details from RECOMMENDATION_DB or hardcoded DISEASE_DB fallback."""
+    # 1. Try CSV-based database first
+    if class_label in RECOMMENDATION_DB:
+        if severity in RECOMMENDATION_DB[class_label]:
+            return RECOMMENDATION_DB[class_label][severity]
+        # Fallback to Medium if specific severity missing
+        if "Medium" in RECOMMENDATION_DB[class_label]:
+            return RECOMMENDATION_DB[class_label]["Medium"]
+
+    # 2. Try hardcoded DISEASE_DB as fallback
     if class_label in DISEASE_DB:
         return DISEASE_DB[class_label]
-    # Fallback — try replacing triple-underscore with space
+
+    # 3. Soft matching for the hardcoded DB
     normalised = class_label.replace("___", " ").replace("_", " ")
     for key, val in DISEASE_DB.items():
         if key.replace("___", " ").replace("_", " ").lower() == normalised.lower():
             return val
+
+    # 4. Ultimate fallback
     return {
         "cause":      "Leaf pattern analysis detected an anomaly. Consult a local agricultural expert.",
         "treatment":  "Consult with a local agricultural expert for correct diagnosis and treatment.",
@@ -231,6 +313,8 @@ def get_disease_info(class_label: str) -> dict:
 # ──────────────────────────────────────────────────────────────────────────────
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    # Refresh recommendations on startup
+    load_recommendations()
     yield
     print("👋 Shutting down ML API...")
 
@@ -252,7 +336,176 @@ app.add_middleware(
 )
 
 # ──────────────────────────────────────────────────────────────────────────────
-# 6. Endpoints
+# 5.5 IoT & Irrigation Logic
+# ──────────────────────────────────────────────────────────────────────────────
+
+class SensorReadingRequest(BaseModel):
+    sensor_type: str
+    value: float
+    user_id: str
+    crop_id: str = None
+
+@app.post("/iot/update")
+async def update_sensor_reading(request: SensorReadingRequest):
+    """Update a sensor's current value and log it in history."""
+    if not supabase:
+        raise HTTPException(status_code=500, detail="Supabase not configured")
+
+    try:
+        # Use the table structure from lib/supabase.ts
+        data = {
+            "user_id": request.user_id,
+            "crop_id": request.crop_id,
+            "sensor_type": request.sensor_type,
+            "value": request.value,
+            "timestamp": "now()"
+        }
+        
+        res = supabase.table("iot_sensors").insert(data).execute()
+        
+        return {"status": "success", "data": res.data}
+    except Exception as e:
+        logger.error(f"IoT Update Error: {e}")
+        return {"status": "error", "message": str(e)}
+
+@app.get("/iot/advice/{user_id}")
+async def get_irrigation_advice(user_id: str):
+    """Analyze recent sensor data for a user and return actionable advice."""
+    if not supabase:
+        return {"advice": "Water management offline. Please check connection."}
+
+    try:
+        # Fetch latest moisture from iot_sensors table
+        res = supabase.table("iot_sensors")\
+            .select("*")\
+            .eq("user_id", user_id)\
+            .eq("sensor_type", "moisture")\
+            .order("timestamp", desc=True)\
+            .limit(1)\
+            .execute()
+        
+        if not res.data:
+            # Fallback for demo if no data exists yet
+            return {
+                "status": "No Data",
+                "recommendation": "Please connect your moisture sensor to get real-time advice.",
+                "amount": "0 L",
+                "method": "None",
+                "duration": "0 mins"
+            }
+
+        current_moisture = float(res.data[0]['value'])
+        
+        # Decision Logic
+        if current_moisture < 30:
+            status, rec, amt, dur = "Urgent", "Soil is extremely dry. Water immediately.", "500 L", "30 mins"
+        elif current_moisture < 45:
+            status, rec, amt, dur = "Warning", "Moisture levels dropping. Scheduled watering recommended.", "300 L", "20 mins"
+        else:
+            status, rec, amt, dur = "Optimal", "Soil moisture is healthy. No irrigation needed today.", "0 L", "0 mins"
+
+        return {
+            "status": status,
+            "recommendation": rec,
+            "current_moisture": current_moisture,
+            "amount": amt,
+            "method": "Drip Irrigation",
+            "duration": dur
+        }
+    except Exception as e:
+        logger.error(f"Advice Error: {e}")
+        return {"error": str(e)}
+
+# ──────────────────────────────────────────────────────────────────────────────
+# 6. Community (Social) Endpoints
+# ──────────────────────────────────────────────────────────────────────────────
+
+@app.get("/community/posts")
+async def get_posts():
+    """Fetch all community posts with user details."""
+    if not supabase: return []
+    try:
+        # Joining with profiles/users table if possible, else just posts
+        res = supabase.table("posts").select("*, users(full_name)").order("created_at", desc=True).execute()
+        return res.data
+    except Exception as e:
+        logger.error(f"Posts fetch error: {e}")
+        return []
+
+@app.post("/community/posts")
+async def create_post(post: PostCreate):
+    """Allow farmers to share updates or ask questions."""
+    if not supabase: return {"status": "error"}
+    try:
+        res = supabase.table("posts").insert(post.dict()).execute()
+        return {"status": "success", "data": res.data}
+    except Exception as e:
+        return {"status": "error", "message": str(e)}
+
+@app.post("/community/posts/{post_id}/like")
+async def like_post(post_id: str):
+    """Simple like incrementer."""
+    if not supabase: return {"status": "error"}
+    try:
+        # Get current count
+        curr = supabase.table("posts").select("likes_count").eq("id", post_id).single().execute()
+        new_count = (curr.data['likes_count'] or 0) + 1
+        supabase.table("posts").update({"likes_count": new_count}).eq("id", post_id).execute()
+        return {"likes": new_count}
+    except Exception as e:
+        return {"status": "error", "message": str(e)}
+
+# ──────────────────────────────────────────────────────────────────────────────
+# 7. Task Management Endpoints
+# ──────────────────────────────────────────────────────────────────────────────
+
+@app.get("/tasks/{user_id}")
+async def get_tasks(user_id: str):
+    if not supabase: return []
+    res = supabase.table("tasks").select("*").eq("user_id", user_id).order("due_date").execute()
+    return res.data
+
+@app.post("/tasks")
+async def add_task(task: TaskCreate):
+    if not supabase: return {"status": "error"}
+    res = supabase.table("tasks").insert(task.dict()).execute()
+    return res.data
+
+@app.patch("/tasks/{task_id}/toggle")
+async def toggle_task(task_id: str, completed: bool):
+    if not supabase: return {"status": "error"}
+    res = supabase.table("tasks").update({"is_completed": completed}).eq("id", task_id).execute()
+    return res.data
+
+# ──────────────────────────────────────────────────────────────────────────────
+# 8. Notifications
+# ──────────────────────────────────────────────────────────────────────────────
+
+@app.get("/notifications/{user_id}")
+async def get_notifications(user_id: str):
+    if not supabase: return []
+    res = supabase.table("notifications").select("*").eq("user_id", user_id).eq("is_read", False).execute()
+    return res.data
+
+# ──────────────────────────────────────────────────────────────────────────────
+# 9. Crop Growth Analytics
+# ──────────────────────────────────────────────────────────────────────────────
+
+@app.post("/crops/logs")
+async def log_growth(log: GrowthLogCreate):
+    """Log physical growth metrics for lifecycle tracking."""
+    if not supabase: return {"status": "error"}
+    res = supabase.table("growth_logs").insert(log.dict()).execute()
+    return res.data
+
+@app.get("/crops/{crop_id}/history")
+async def get_crop_history(crop_id: str):
+    if not supabase: return []
+    res = supabase.table("growth_logs").select("*").eq("crop_id", crop_id).order("log_date").execute()
+    return res.data
+
+# ──────────────────────────────────────────────────────────────────────────────
+# 10. Endpoints (Legacy Path Preservation)
 # ──────────────────────────────────────────────────────────────────────────────
 
 @app.get("/")
@@ -356,8 +609,8 @@ async def predict_disease(file: UploadFile = File(...), language: str = "en"):
         if len(image_bytes) == 0:
             raise ValueError("Empty image file received.")
 
-        # 5. Preprocess — model input is (None, 128, 128, 3)
-        processed_image = preprocess_image(image_bytes, target_size=(128, 128))
+        # 5. Preprocess — model input is (None, 224, 224, 3)
+        processed_image = preprocess_image(image_bytes, target_size=(224, 224))
         logger.info(f"🔧 Preprocessed shape: {processed_image.shape}")
 
         # 6. Predict
@@ -367,7 +620,13 @@ async def predict_disease(file: UploadFile = File(...), language: str = "en"):
         # 7. Extract result
         class_index = int(np.argmax(predictions[0]))
         confidence  = float(np.max(predictions[0])) * 100
-        class_label = class_names[class_index]
+        
+        # Safety check: ensure class_index exists in class_names
+        if class_index < len(class_names):
+            class_label = class_names[class_index]
+        else:
+            class_label = f"Unknown_Disease_Index_{class_index}"
+            logger.warning(f"⚠️ Model predicted index {class_index}, but class_names only has {len(class_names)} items.")
 
         # 8. Severity
         if confidence >= 80:
@@ -377,8 +636,8 @@ async def predict_disease(file: UploadFile = File(...), language: str = "en"):
         else:
             severity = "Low"
 
-        # 9. Get disease info
-        info = get_disease_info(class_label)
+        # 9. Get disease info (now with severity lookup)
+        info = get_disease_info(class_label, severity)
 
         # 10. Format disease name for display (e.g. "Potato___Early_Blight" → "Potato Early Blight")
         display_name = class_label.replace("___", " ").replace("_", " ")
