@@ -11,10 +11,12 @@ import autoTable from 'jspdf-autotable';
 
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/lib/supabase';
+import { useNotifications } from '@/contexts/NotificationContext';
 
 export default function ScanCropPage() {
     const { t, i18n } = useTranslation();
     const { user } = useAuth();
+    const { addNotification } = useNotifications();
     const [selectedFile, setSelectedFile] = useState<File | null>(null);
     const [selectedImage, setSelectedImage] = useState<string | null>(null);
     const [isCameraActive, setIsCameraActive] = useState(false);
@@ -127,6 +129,13 @@ export default function ScanCropPage() {
                 prevention: data.prevention,
                 fertilizer: data.fertilizer,
             });
+            
+            // Trigger Notification
+            addNotification(
+                t('scan.detected') + ": " + data.disease,
+                `${t('scan.detected')} in your crop with ${data.confidence}% confidence. Check the treatment plan.`,
+                'ai'
+            );
         } catch (error: any) { // eslint-disable-line @typescript-eslint/no-explicit-any
             console.error('Scan error:', error);
             setResult({
@@ -216,6 +225,13 @@ export default function ScanCropPage() {
                     });
 
                     if (error) throw error;
+                    
+                    addNotification(
+                        "Report Saved",
+                        `Diagnosis report for ${result.diseaseLocal} has been saved to your health history.`,
+                        'crop'
+                    );
+
                     alert('✅ Report saved to cloud & downloaded!');
                 } catch (dbError: any) { // eslint-disable-line @typescript-eslint/no-explicit-any
                     console.warn('Cloud save failed (RLS likely):', dbError);

@@ -3,6 +3,7 @@ import { Inter, Outfit } from "next/font/google";
 import "./globals.css";
 import I18nProvider from "@/components/I18nProvider";
 import { AuthProvider } from "@/contexts/AuthContext";
+import { NotificationProvider } from "@/contexts/NotificationContext";
 
 const inter = Inter({
   subsets: ["latin"],
@@ -70,7 +71,25 @@ export default function RootLayout({
       </head>
       <body className="antialiased">
         <AuthProvider>
-          <I18nProvider>{children}</I18nProvider>
+          <NotificationProvider>
+            <I18nProvider>{children}</I18nProvider>
+          </NotificationProvider>
+          {/* Dev Helper: Clear service workers to prevent Workbox 404s */}
+          <script dangerouslySetInnerHTML={{ __html: `
+            if ('serviceWorker' in navigator && window.location.hostname === 'localhost') {
+                navigator.serviceWorker.getRegistrations().then(registrations => {
+                    for(let registration of registrations) {
+                        registration.unregister();
+                        console.log('Stale ServiceWorker unregistered');
+                    }
+                });
+                if (window.caches) {
+                    caches.keys().then(names => {
+                        for(let name of names) caches.delete(name);
+                    });
+                }
+            }
+          `}} />
         </AuthProvider>
       </body>
     </html>

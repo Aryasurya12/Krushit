@@ -5,13 +5,13 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Info } from 'lucide-react';
 
 const stages = [
-    { id: 'Seed', name: 'Seed', description: 'Active Dormancy Stage', info: 'Small seed inside the soil waiting for moisture.' },
-    { id: 'Germination', name: 'Germination', description: 'Sprouting Phase', info: 'Tiny sprout emerging from the soil as roots establish.' },
-    { id: 'Seedling', name: 'Seedling', description: 'Initial Growth', info: 'Small plant with the first two true leaves developed.' },
-    { id: 'Vegetative', name: 'Vegetative', description: 'Leaf & Stem Development', info: 'Taller plant with multiple leaves and a thickening stem.' },
-    { id: 'Flowering', name: 'Flowering', description: 'Reproductive Phase', info: 'Plant begins to show flowers or reproductive structures.' },
-    { id: 'Grain Formation', name: 'Grain Formation', description: 'Yield Development', info: 'Grains or fruits are forming on the plant structure.' },
-    { id: 'Harvest', name: 'Harvest', description: 'Maturity Stage', info: 'Fully mature plant with full grain structure ready for collection.' }
+    { id: 'Seed', name: 'Seed', description: 'Active Dormancy Stage', info: 'Small seed inside the soil waiting for moisture.', image: '/images/crops/seed.png' },
+    { id: 'Germination', name: 'Germination', description: 'Sprouting Phase', info: 'Tiny sprout emerging from the soil as roots establish.', image: '/images/crops/germination.png' },
+    { id: 'Seedling', name: 'Seedling', description: 'Initial Growth', info: 'Small plant with the first two true leaves developed.', image: '/images/crops/seedling.png' },
+    { id: 'Vegetative', name: 'Vegetative', description: 'Leaf & Stem Development', info: 'Taller plant with multiple leaves and a thickening stem.', image: '/images/crops/vegetative.png' },
+    { id: 'Flowering', name: 'Flowering', description: 'Reproductive Phase', info: 'Plant begins to show flowers or reproductive structures.', image: '/images/crops/flowering.png' },
+    { id: 'Grain Formation', name: 'Grain Formation', description: 'Yield Development', info: 'Grains or fruits are forming on the plant structure.', image: '/images/crops/grain.png' },
+    { id: 'Harvest', name: 'Harvest', description: 'Maturity Stage', info: 'Fully mature plant with full grain structure ready for collection.', image: '/images/crops/harvest.png' }
 ];
 
 const LeafIcon = ({ status }: { status: 'completed' | 'current' | 'future' }) => (
@@ -33,7 +33,7 @@ export const CropGrowthAnimation: React.FC<CropGrowthAnimationProps> = ({ curren
 
     return (
         <div className="flex flex-col w-full">
-            {/* Visual Display Area */}
+            {/* Visual Display Area (Realistic 2D Illustrations) */}
             <div className="relative h-80 w-full bg-gradient-to-b from-[#e0f2fe] to-[#bae6fd] rounded-2xl overflow-hidden border border-blue-200 shadow-lg group">
                 {/* Animated Sun */}
                 <motion.div
@@ -47,13 +47,6 @@ export const CropGrowthAnimation: React.FC<CropGrowthAnimationProps> = ({ curren
                         rotate: { repeat: Infinity, duration: 20, ease: "linear" }
                     }}
                 />
-
-                {/* Rays */}
-                <div className="absolute top-8 right-12 w-16 h-16 animate-pulse opacity-40">
-                    {[...Array(8)].map((_, i) => (
-                        <div key={i} className="absolute top-1/2 left-1/2 w-24 h-[2px] bg-yellow-200 origin-left" style={{ transform: `rotate(${i * 45}deg) translateX(10px)` }}></div>
-                    ))}
-                </div>
 
                 {/* Floating Clouds */}
                 <motion.div
@@ -88,20 +81,13 @@ export const CropGrowthAnimation: React.FC<CropGrowthAnimationProps> = ({ curren
                     )}
                 </AnimatePresence>
 
-                {/* Plant System: Left to Right Growth Sequence */}
+                {/* Realistic Growth Illustrations: Sequential Layout */}
                 <div className="absolute bottom-16 left-0 w-full h-full flex items-end justify-between px-4 sm:px-8 z-10 pb-2 pointer-events-none">
                     {stages.map((stage, i) => {
                         const isCurrent = i === currentIndex;
                         const isCompleted = i < currentIndex;
                         const status = isCurrent ? 'current' : isCompleted ? 'completed' : 'future';
 
-                        // Wheat Plant Metrics
-                        const isHarvest = i === 6;
-                        const baseColor = status === 'future' ? '#9CA3AF' : isHarvest ? '#D97706' : '#16A34A';
-                        const leafColor = status === 'future' ? '#D1D5DB' : isHarvest ? '#B45309' : '#15803D';
-                        const spikeColor = status === 'future' ? '#E5E7EB' : isHarvest ? '#F59E0B' : '#86EFAC';
-
-                        const height = i === 0 ? 0 : i === 1 ? 15 : i === 2 ? 40 : i === 3 ? 90 : i === 4 ? 130 : i === 5 ? 160 : 160;
                         const scale = isCurrent ? 1.25 : 1.0;
                         const opacity = status === 'future' ? 0.3 : 1;
                         const filter = status === 'future' ? 'grayscale(100%)' : 'none';
@@ -127,69 +113,23 @@ export const CropGrowthAnimation: React.FC<CropGrowthAnimationProps> = ({ curren
                                     animate={{ scale, opacity, filter }}
                                     transition={{ duration: 0.5 }}
                                 >
-                                    {/* Seed Stage */}
-                                    {i === 0 && (
-                                        <div className="w-4 h-2.5 bg-[#8B4513] rounded-full border border-[#5C3A21] shadow-sm transform translate-y-2" />
-                                    )}
-
-                                    {/* Germination and beyond */}
-                                    {i > 0 && (
-                                        <div style={{ height: `${height}px`, width: '4px', backgroundColor: baseColor, borderRadius: '4px' }} className="relative flex justify-center">
-
-                                            {/* Germination Sprout */}
-                                            {i === 1 && (
-                                                <div className="absolute top-0 -right-2 w-3 h-4 border-t-2 border-r-2 rounded-tr-full" style={{ borderColor: leafColor }} />
-                                            )}
-
-                                            {/* Wheat Leaves (Long & Thin) */}
-                                            {i >= 2 && Array.from({ length: Math.min(i * 2 + 2, 10) }).map((_, leafIdx) => {
-                                                const side = leafIdx % 2 === 0 ? -1 : 1;
-                                                const bottomPos = 5 + Math.floor(leafIdx / 2) * 20;
-                                                if (bottomPos > height - 15) return null;
-
-                                                const leafWidth = 25 + Math.min(i, 4) * 5;
-
-                                                return (
-                                                    <div key={leafIdx} className="absolute origin-bottom shadow-sm" style={{
-                                                        bottom: `${bottomPos}px`,
-                                                        left: side === -1 ? `-${leafWidth - 2}px` : '2px',
-                                                        width: `${leafWidth}px`,
-                                                        height: '4px',
-                                                        backgroundColor: leafColor,
-                                                        borderRadius: side === -1 ? '100% 0 100% 0' : '0 100% 0 100%',
-                                                        transform: `rotate(${side * (40 + (leafIdx % 3) * 5)}deg)`
-                                                    }}>
-                                                        <div className="w-full h-[1px] bg-white/20 absolute top-1/2 -translate-y-1/2" />
-                                                    </div>
-                                                );
-                                            })}
-
-                                            {/* Wheat Head (Spike) */}
-                                            {i >= 4 && (
-                                                <div className="absolute -top-10 flex flex-col items-center" style={{ transformOrigin: 'bottom', transform: i === 6 ? 'rotate(15deg)' : 'none' }}>
-                                                    <div style={{ width: '12px', height: i === 4 ? '35px' : '45px', backgroundColor: baseColor, borderRadius: '6px' }} className="relative flex flex-col items-center justify-center gap-[2px] p-[2px] shadow-sm">
-                                                        {/* Wheat Kernels */}
-                                                        {Array.from({ length: i === 4 ? 6 : 8 }).map((_, k) => (
-                                                            <div key={k} className="w-full flex justify-between gap-[1px]">
-                                                                <div style={{ width: '4px', height: '5px', backgroundColor: spikeColor, borderRadius: '2px' }} />
-                                                                <div style={{ width: '4px', height: '5px', backgroundColor: spikeColor, borderRadius: '2px' }} />
-                                                            </div>
-                                                        ))}
-                                                        {/* Awns (Bristles) */}
-                                                        <div className="absolute -top-6 flex justify-around w-full h-8 opacity-60">
-                                                            <div style={{ width: '1px', height: '100%', backgroundColor: spikeColor, transform: 'rotate(-15deg)' }} />
-                                                            <div style={{ width: '1px', height: '100%', backgroundColor: spikeColor }} />
-                                                            <div style={{ width: '1px', height: '100%', backgroundColor: spikeColor, transform: 'rotate(15deg)' }} />
-                                                        </div>
-                                                        <div className="absolute top-0 flex justify-around w-[150%] h-8 opacity-60 pointer-events-none">
-                                                            <div style={{ width: '1px', height: '100%', backgroundColor: spikeColor, transform: 'rotate(-25deg)' }} />
-                                                            <div style={{ width: '1px', height: '100%', backgroundColor: spikeColor, transform: 'rotate(25deg)' }} />
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                            )}
-                                        </div>
-                                    )}
+                                    <div className="relative group/crop">
+                                        <motion.img
+                                            src={stage.image}
+                                            alt={stage.name}
+                                            className="w-auto pointer-events-none drop-shadow-2xl"
+                                            style={{ 
+                                                maxHeight: i === 0 ? '40px' : i === 1 ? '60px' : i === 2 ? '100px' : i === 3 ? '150px' : i === 4 ? '180px' : '200px',
+                                                zIndex: isCurrent ? 50 : 10,
+                                                transformOrigin: 'bottom'
+                                            }}
+                                            animate={isCurrent ? {
+                                                y: [0, -5, 0]
+                                            } : {}}
+                                            transition={{ repeat: Infinity, duration: 4, ease: "easeInOut" }}
+                                        />
+                                        <div className={`absolute bottom-0 left-1/2 -translate-x-1/2 w-full h-4 blur-md opacity-20 bg-black rounded-full pointer-events-none -z-10`} />
+                                    </div>
                                 </motion.div>
                             </div>
                         );
@@ -198,10 +138,7 @@ export const CropGrowthAnimation: React.FC<CropGrowthAnimationProps> = ({ curren
 
                 {/* Improved Soil Section */}
                 <div className="absolute bottom-0 w-full h-16 bg-[#5c4033] z-20 overflow-hidden shadow-[inset_0_10px_20px_rgba(0,0,0,0.4)]">
-                    {/* Surface Texture */}
                     <div className="absolute top-0 w-full h-[6px] bg-[#4a3328] border-t border-[#3d2a21]"></div>
-
-                    {/* Soil Details / Rocks */}
                     {[...Array(12)].map((_, i) => (
                         <div
                             key={i}
@@ -214,8 +151,6 @@ export const CropGrowthAnimation: React.FC<CropGrowthAnimationProps> = ({ curren
                             }}
                         ></div>
                     ))}
-
-                    {/* Grass patches */}
                     {[...Array(6)].map((_, i) => (
                         <div
                             key={`grass-${i}`}
@@ -229,10 +164,7 @@ export const CropGrowthAnimation: React.FC<CropGrowthAnimationProps> = ({ curren
             {/* Leaf Timeline Progress */}
             <div className="mt-8 px-2">
                 <div className="relative flex justify-between items-center sm:px-4">
-                    {/* Progress Bar Background */}
                     <div className="absolute top-4 left-6 right-6 h-[4px] bg-gray-100 rounded-full -z-10"></div>
-
-                    {/* Active Progress Bar */}
                     <motion.div
                         className="absolute top-4 left-6 h-[4px] bg-emerald-500 rounded-full -z-10"
                         initial={{ width: 0 }}
@@ -244,7 +176,6 @@ export const CropGrowthAnimation: React.FC<CropGrowthAnimationProps> = ({ curren
                     {stages.map((stage, i) => {
                         const isCompleted = i < currentIndex;
                         const isCurrent = i === currentIndex;
-                        const isFuture = i > currentIndex;
                         const status = isCurrent ? 'current' : isCompleted ? 'completed' : 'future';
 
                         return (
@@ -265,25 +196,9 @@ export const CropGrowthAnimation: React.FC<CropGrowthAnimationProps> = ({ curren
                                     )}
                                     <LeafIcon status={status} />
                                 </div>
-
-                                <p className={`text-[10px] sm:text-[11px] font-black uppercase tracking-wider text-center transition-colors duration-300 ${isCurrent ? 'text-emerald-600' : isCompleted ? 'text-emerald-800/70' : 'text-gray-400'
-                                    }`}>
+                                <p className={`text-[10px] sm:text-[11px] font-black uppercase tracking-wider text-center transition-colors duration-300 ${isCurrent ? 'text-emerald-600' : isCompleted ? 'text-emerald-800/70' : 'text-gray-400'}`}>
                                     {stage.name}
                                 </p>
-
-                                {/* Desktop mini-tooltip on hover */}
-                                <AnimatePresence>
-                                    {hoveredStage === i && (
-                                        <motion.div
-                                            initial={{ opacity: 0, y: -10 }}
-                                            animate={{ opacity: 1, y: 0 }}
-                                            exit={{ opacity: 0 }}
-                                            className="absolute -bottom-16 bg-gray-900 text-white text-[9px] py-1 px-2 rounded whitespace-nowrap z-50 pointer-events-none md:block hidden"
-                                        >
-                                            {stage.description}
-                                        </motion.div>
-                                    )}
-                                </AnimatePresence>
                             </div>
                         );
                     })}

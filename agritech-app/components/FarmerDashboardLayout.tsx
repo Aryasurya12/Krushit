@@ -23,6 +23,8 @@ import {
     Search,
     Users
 } from 'lucide-react';
+import { useNotifications } from '@/contexts/NotificationContext';
+import NotificationPanel from '@/components/NotificationPanel';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const SidebarItem = ({ item, isActive, onClick, isVoice, voiceListening }: any) => {
@@ -59,7 +61,7 @@ const SidebarItem = ({ item, isActive, onClick, isVoice, voiceListening }: any) 
 };
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-const SidebarContent = ({ navItems, currentPath, onItemClick, onVoiceClick, voiceListening, changeLanguage, currentLanguage, signOut, user, t }: any) => {
+const SidebarContent = ({ navItems, currentPath, onItemClick, onVoiceClick, voiceListening, changeLanguage, currentLanguage, signOut, user, profile, t }: any) => {
     return (
         <div className="flex flex-col h-full bg-[#1E2D24] text-white">
             <div className="p-6 border-b border-white/10 flex items-center gap-3">
@@ -103,13 +105,13 @@ const SidebarContent = ({ navItems, currentPath, onItemClick, onVoiceClick, voic
 
                 <div className="flex items-center gap-3 group cursor-pointer hover:bg-white/5 p-2 rounded-lg transition-colors">
                     <div className="w-8 h-8 bg-zinc-700 rounded-full flex items-center justify-center text-xs font-bold text-white border border-white/10">
-                        {user?.email?.charAt(0).toUpperCase() || 'U'}
+                        {profile?.full_name?.charAt(0).toUpperCase() || user?.email?.charAt(0).toUpperCase() || 'U'}
                     </div>
                     <div className="flex-1 min-w-0">
-                        <p className="text-sm font-medium text-white truncate">{user?.user_metadata?.full_name || t('layout.farmer')}</p>
+                        <p className="text-sm font-medium text-white truncate">{profile?.full_name || user?.user_metadata?.full_name || t('layout.farmer')}</p>
                         <p className="text-xs text-gray-500 truncate">{user?.email || 'user@krushit.com'}</p>
                     </div>
-                    <button onClick={signOut} className="text-gray-500 hover:text-red-400 transition-colors p-1">
+                    <button onClick={() => signOut()} className="text-gray-500 hover:text-red-400 transition-colors p-1">
                         <LogOut size={16} />
                     </button>
                 </div>
@@ -124,7 +126,7 @@ export default function FarmerDashboardLayout({ children }: { children: React.Re
     const [voiceListening, setVoiceListening] = useState(false);
     const pathname = usePathname();
     const { t, i18n } = useTranslation();
-    const { user, signOut } = useAuth();
+    const { user, profile, signOut } = useAuth();
     const router = useRouter();
 
     const safeNavItems = useMemo(() => [
@@ -138,6 +140,8 @@ export default function FarmerDashboardLayout({ children }: { children: React.Re
         { icon: Mic, label: t('nav.voiceHelp'), href: '#voice', isVoice: true },
         { icon: Settings, label: t('nav.settings'), href: '/settings' },
     ], [t]);
+
+    const { unreadCount, isPanelOpen, setIsPanelOpen, markAllAsRead } = useNotifications();
 
     const handleVoiceClick = useCallback(() => {
         setVoiceListening(true);
@@ -179,6 +183,7 @@ export default function FarmerDashboardLayout({ children }: { children: React.Re
                     currentLanguage={i18n.language}
                     signOut={signOut}
                     user={user}
+                    profile={profile}
                     t={t}
                 />
             </aside>
@@ -210,6 +215,7 @@ export default function FarmerDashboardLayout({ children }: { children: React.Re
                                 currentLanguage={i18n.language}
                                 signOut={signOut}
                                 user={user}
+                                profile={profile}
                                 t={t}
                             />
                         </motion.aside>
@@ -234,20 +240,36 @@ export default function FarmerDashboardLayout({ children }: { children: React.Re
                     </div>
 
                     <div className="flex items-center gap-3 sm:gap-4">
-                        <button className="p-2 text-gray-400 hover:text-agri-dark hover:bg-gray-100 rounded-full relative transition-colors">
-                            <Bell size={20} />
-                            <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-red-500 rounded-full border border-white"></span>
+                    <div className="flex items-center gap-3 sm:gap-4 relative">
+                        <button 
+                            onClick={() => {
+                                setIsPanelOpen(!isPanelOpen);
+                                if (!isPanelOpen) markAllAsRead();
+                            }}
+                            className={`p-2 rounded-full relative transition-all duration-200 ${
+                                isPanelOpen ? 'bg-agri-green/10 text-agri-green' : 'text-gray-400 hover:text-agri-dark hover:bg-gray-100'
+                            }`}
+                        >
+                            <Bell size={20} className={unreadCount > 0 ? 'animate-[bell_1.5s_infinite]' : ''} />
+                            {unreadCount > 0 && (
+                                <span className="absolute top-1.5 right-1.5 min-w-[16px] h-4 flex items-center justify-center bg-red-500 rounded-full border-2 border-white text-[9px] font-bold text-white shadow-sm ring-1 ring-red-500/20 px-0.5">
+                                    {unreadCount > 9 ? '9+' : unreadCount}
+                                </span>
+                            )}
                         </button>
+                        
+                        <NotificationPanel />
+                    </div>
 
                         <div className="h-6 w-px bg-gray-200 hidden sm:block"></div>
 
                         <div className="flex items-center gap-3 cursor-pointer p-1.5 rounded-lg hover:bg-gray-50 transition-colors">
                             <div className="text-right hidden sm:block">
-                                <p className="text-sm font-semibold text-gray-900 leading-none mb-0.5">{user?.user_metadata?.full_name || t('layout.farmer')}</p>
+                                <p className="text-sm font-semibold text-gray-900 leading-none mb-0.5">{profile?.full_name || user?.user_metadata?.full_name || t('layout.farmer')}</p>
                                 <p className="text-xs text-gray-500 leading-none">{t('layout.proPlan')}</p>
                             </div>
                             <div className="w-8 h-8 bg-agri-green text-white rounded-md flex items-center justify-center font-bold text-sm shadow-sm ring-2 ring-white">
-                                {user?.user_metadata?.full_name?.charAt(0) || 'F'}
+                                {(profile?.full_name || user?.user_metadata?.full_name)?.charAt(0) || 'F'}
                             </div>
                             <ChevronDown size={14} className="text-gray-400 hidden sm:block" />
                         </div>

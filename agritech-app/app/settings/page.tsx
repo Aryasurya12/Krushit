@@ -9,7 +9,7 @@ import { useAuth } from '@/contexts/AuthContext';
 
 export default function SettingsPage() {
     const { t, i18n } = useTranslation();
-    const { user, updateProfile, signOut } = useAuth();
+    const { user, profile, updateProfile, signOut, deleteAccount } = useAuth();
 
     // State for form fields
     const [formData, setFormData] = useState({
@@ -30,19 +30,21 @@ export default function SettingsPage() {
 
     // Sync state with user data on load
     useEffect(() => {
-        if (user) {
+        // Prefer profile from public.users, fallback to user_metadata
+        const source = profile || user?.user_metadata;
+        if (source) {
             setFormData({
-                full_name: user.user_metadata?.full_name || '',
-                phone: user.user_metadata?.phone || '',
-                email: user.email || '',
-                region: user.user_metadata?.region || 'Maharashtra'
+                full_name: source.full_name || '',
+                phone: source.phone || '',
+                email: user?.email || '',
+                region: source.region || 'Maharashtra'
             });
 
-            if (user.user_metadata?.notifications) {
-                setNotifications(user.user_metadata.notifications);
+            if (source.notifications) {
+                setNotifications(source.notifications);
             }
         }
-    }, [user]);
+    }, [user, profile]);
 
     // Handlers
     const handleSaveProfile = async () => {
@@ -84,7 +86,16 @@ export default function SettingsPage() {
     };
 
     const handleLogout = async () => {
-        await signOut();
+        if (confirm(t('auth.signOut') + "?")) {
+            await signOut(true); // global logout
+        }
+    };
+
+    const handleDeleteAccount = async () => {
+        if (confirm(t('settings.deleteAccount') + "? This action is permanent.")) {
+            const { error } = await deleteAccount();
+            if (error) alert(error.message);
+        }
     };
 
     return (
@@ -236,7 +247,7 @@ export default function SettingsPage() {
                         </h3>
                         <div className="flex gap-4">
                             <button
-                                onClick={() => alert("Contact support to delete account.")}
+                                onClick={handleDeleteAccount}
                                 className="flex items-center gap-2 px-4 py-2 bg-red-50 text-red-600 border border-red-100 rounded-lg hover:bg-red-100 transition-colors text-sm font-medium"
                             >
                                 <Trash2 size={16} /> {t('settings.deleteAccount')}

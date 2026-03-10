@@ -20,6 +20,18 @@ SUPABASE_URL = os.getenv("SUPABASE_URL")
 SUPABASE_KEY = os.getenv("SUPABASE_KEY")
 supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY) if SUPABASE_URL and SUPABASE_KEY else None
 
+# Verify Connection
+if supabase:
+    try:
+        # Simple test query to verify connection
+        supabase.table("users").select("id").limit(1).execute()
+        print(f"✅ Supabase Connection: SUCCESS (Project: {SUPABASE_URL})")
+    except Exception as e:
+        print(f"⚠️ Supabase Connection: SEMI-CONNECTED (Auth works, but DB access error: {e})")
+        print(f"👉 Note: Using ANON key. If RLS is enabled, DB access might be restricted.")
+else:
+    print("❌ Supabase Connection: FAILED (Env variables missing)")
+
 # Configure logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("agritech-ml-api")

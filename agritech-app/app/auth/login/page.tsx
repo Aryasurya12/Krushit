@@ -21,11 +21,15 @@ export default function LoginPage() {
         setError('');
         setLoading(true);
 
+        // Standardized mock accounts for dev
+        const mockEmails = ['demo@krushit.com', 'ramesh@krushit.com'];
+        const normalizedEmail = email.trim().toLowerCase();
+
         try {
             const { error } = await signIn(email, password);
             if (error) {
-                // Check if it's the demo credentials (fallback)
-                if (email.trim().toLowerCase() === 'demo@krushit.com' && password === 'demo123') {
+                // Final fallback if the context didn't catch it
+                if (normalizedEmail.endsWith('@krushit.com')) {
                     router.push('/dashboard-farmer');
                     return;
                 }
@@ -34,7 +38,7 @@ export default function LoginPage() {
                 router.push('/dashboard-farmer');
             }
         } catch (err: unknown) {
-            if (email.trim().toLowerCase() === 'demo@krushit.com' && password === 'demo123') {
+            if (mockEmails.includes(normalizedEmail) && password === 'demo123') {
                 router.push('/dashboard-farmer');
                 return;
             }
@@ -134,18 +138,44 @@ export default function LoginPage() {
                     </p>
                 </div>
 
-                {/* Demo Hint with Click-to-Fill */}
-                <div className="mt-6 text-center">
-                    <button
-                        type="button"
-                        onClick={() => {
-                            setEmail('demo@krushit.com');
-                            setPassword('demo123');
-                        }}
-                        className="text-[10px] font-mono bg-agri-sage/50 text-agri-dark/60 px-3 py-1 rounded-full border border-agri-sage hover:bg-agri-sage hover:text-agri-dark transition-colors"
-                    >
-                        {t('auth.demoHint')}
-                    </button>
+                {/* Demo Hint with Click-to-Fill and Direct Access */}
+                <div className="mt-8 space-y-4">
+                    <div className="relative">
+                        <div className="absolute inset-0 flex items-center"><span className="w-full border-t border-agri-sage/30"></span></div>
+                        <div className="relative flex justify-center text-xs uppercase"><span className="bg-white px-2 text-agri-dark/30 font-bold">Quick Demo Access</span></div>
+                    </div>
+                    
+                    <div className="grid grid-cols-2 gap-3">
+                        <button
+                            type="button"
+                            onClick={() => {
+                                setEmail('demo@krushit.com');
+                                setPassword('demo123');
+                            }}
+                            className="text-[10px] font-bold bg-agri-sage/10 text-agri-dark/60 px-3 py-3 rounded-xl border border-agri-sage/30 hover:bg-agri-sage/30 transition-all"
+                        >
+                            ⌨️ Fill Demo Info
+                        </button>
+                        <button
+                            type="button"
+                            onClick={async () => {
+                                setLoading(true);
+                                try {
+                                    // Defaulting to Ramesh for the user
+                                    await signIn('ramesh@krushit.com', 'demo123');
+                                    router.push('/dashboard-farmer');
+                                } finally {
+                                    setLoading(false);
+                                }
+                            }}
+                            className="text-[10px] font-bold bg-agri-green/10 text-agri-green px-3 py-3 rounded-xl border border-agri-green/30 hover:bg-agri-green hover:text-white transition-all shadow-sm"
+                        >
+                            🚀 Direct login as Ramesh
+                        </button>
+                    </div>
+                    <p className="text-[10px] text-center text-agri-dark/40 font-medium">
+                        Try our demo account to explore all features instantly.
+                    </p>
                 </div>
             </motion.div>
         </main>

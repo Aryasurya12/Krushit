@@ -3,7 +3,7 @@
         "home": "Home",
         "myCrop": "My Crop",
         "scanCrop": "Scan Crop",
-        "waterAdvice": "Water Advice",
+        "waterAdvice": "Advice",
         "weather": "Weather",
         "farmHealth": "Farm Health",
         "community": "Community",
@@ -75,6 +75,7 @@
     "common": {
         "loading": "Loading...",
         "error": "Error",
+        "save": "Save",
         "filter": "Filter",
         "viewDetails": "View Details"
     },
@@ -111,8 +112,8 @@
         }
     },
     "water": {
-        "title": "Water Advice",
-        "subtitle": "Real-time sensor data and irrigation schedule.",
+        "title": "Advice",
+        "subtitle": "Smart irrigation and nutrient recommendations for your crops.",
         "addSensor": "Add Sensor",
         "liveRec": "Live Recommendation",
         "waterAmount": "Water Amount",
@@ -122,7 +123,19 @@
         "analysis": "Analysis Factors",
         "soilMoisture": "Soil Moisture",
         "soilTemp": "Soil Temp",
-        "humidity": "Humidity"
+        "humidity": "Humidity",
+        "waterAdvice": "Water Advice",
+        "fertilizer": "Fertilizer Advice",
+        "nutrient": "Soil Nutrient Status",
+        "ph": "Soil pH",
+        "nitrogen": "Nitrogen",
+        "phosphorus": "Phosphorus",
+        "potassium": "Potassium",
+        "meth": "Method",
+        "dur": "Duration",
+        "amt": "Amount Required",
+        "next": "Next Date",
+        "alert": "Alert"
     },
     "weather": {
         "title": "Weather",

@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import FarmerDashboardLayout from '@/components/FarmerDashboardLayout';
 import { useTranslation } from 'react-i18next';
-import { CheckCircle, AlertTriangle, Droplets, Sprout, Bug, Sun, ArrowRight, Activity, Filter } from 'lucide-react';
+import { CheckCircle, AlertTriangle, Droplets, Sprout, Bug, Sun, ArrowRight, Activity, Filter, MapPin } from 'lucide-react';
 
 export default function FarmHealthPage() {
     const { t } = useTranslation();
@@ -18,7 +18,10 @@ export default function FarmHealthPage() {
             description: t('messages.soilDryTemp'),
             priority: 'high',
             action: t('water.liveRec') || 'Water 500L', // Fallback or strict translation
-            category: 'irrigation'
+            category: 'irrigation',
+            farmName: 'Farm 2',
+            cropName: 'Wheat Crop',
+            sensorZone: 'Soil Sensor Zone 3'
         },
         {
             id: 2,
@@ -27,7 +30,9 @@ export default function FarmHealthPage() {
             description: 'NPK levels are low. Apply fertilizer soon.', // Need translation key
             priority: 'medium',
             action: 'Apply 50kg NPK fertilizer',
-            category: 'nutrition'
+            category: 'nutrition',
+            farmName: 'North Plot',
+            cropName: 'Tomato Field'
         },
         {
             id: 3,
@@ -36,7 +41,9 @@ export default function FarmHealthPage() {
             description: t('dashboard.alerts.aphids'),
             priority: 'medium',
             action: t('dashboard.tools.scanTitle'),
-            category: 'pest'
+            category: 'pest',
+            farmName: 'Farm 1',
+            cropName: 'Potato Crop'
         },
         {
             id: 4,
@@ -45,7 +52,10 @@ export default function FarmHealthPage() {
             description: 'Weather is good for crop growth this week.', // Need translation key?
             priority: 'low',
             action: t('recommendations.recommendedAction'),
-            category: 'general'
+            category: 'general',
+            farmName: 'East Field',
+            cropName: 'Rice Plantation',
+            sensorZone: 'Weather Station 1'
         },
     ];
     // Note: Some hardcoded descriptions above might need new keys if strict. 
@@ -147,7 +157,7 @@ export default function FarmHealthPage() {
                                 </div>
 
                                 <div className="flex-1 w-full">
-                                    <div className="flex justify-between items-start mb-2">
+                                    <div className="flex justify-between items-start mb-1">
                                         <h3 className="text-lg font-bold text-gray-900">{rec.title}</h3>
                                         <span className={`px-2 py-1 rounded text-[10px] font-bold uppercase ${rec.priority === 'high' ? 'bg-red-100 text-red-700' :
                                             rec.priority === 'medium' ? 'bg-amber-100 text-amber-700' :
@@ -157,7 +167,21 @@ export default function FarmHealthPage() {
                                         </span>
                                     </div>
 
-                                    <p className="text-gray-600 mb-4">{rec.description}</p>
+                                    {/* Farm & Crop Context Line */}
+                                    <div className="flex items-center gap-1.5 text-[11px] font-bold text-agri-green mb-3 uppercase tracking-tight">
+                                        <MapPin size={14} className="shrink-0" />
+                                        <span>{(rec as any).cropName} — {(rec as any).farmName}</span>
+                                        {(rec as any).sensorZone && (
+                                            <>
+                                                <span className="text-gray-300 mx-1 font-normal">•</span>
+                                                <span className="text-blue-600 flex items-center gap-1">
+                                                    <Activity size={12} /> {(rec as any).sensorZone}
+                                                </span>
+                                            </>
+                                        )}
+                                    </div>
+
+                                    <p className="text-gray-600 mb-4 text-sm leading-relaxed">{rec.description}</p>
 
                                     <div className="bg-gray-50 rounded-lg p-4 flex flex-col sm:flex-row items-center justify-between gap-4 border border-gray-100">
                                         <div className="flex items-center gap-3">

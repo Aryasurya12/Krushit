@@ -2,12 +2,32 @@
 
 import Link from 'next/link';
 import { useTranslation } from 'react-i18next';
-import { Sprout, Droplets, AlertTriangle, Activity, CloudSun, Wind, CloudRain, CheckCircle, ThermometerSun, Leaf, Camera, Plus, Map, CheckCircle2, Circle } from 'lucide-react';
+import { Sprout, Droplets, AlertTriangle, Activity, CloudSun, Wind, CloudRain, CheckCircle, ThermometerSun, Leaf, Camera, Plus, Map, CheckCircle2, Circle, MapPin } from 'lucide-react';
 import FarmerDashboardLayout from '@/components/FarmerDashboardLayout';
 import { motion } from 'framer-motion';
+import { useEffect } from 'react';
+import { useNotifications } from '@/contexts/NotificationContext';
 
 export default function FarmerHomePage() {
     const { t } = useTranslation();
+    const { addNotification, notifications } = useNotifications();
+
+    useEffect(() => {
+        // Only trigger initial alerts if we have no notifications yet
+        if (notifications.length === 0) {
+            const initialAlerts = [
+                { title: 'High Temperature Risk', message: 'Wheat crop is at risk due to rising temperatures.', type: 'weather' as const },
+                { title: 'Soil Moisture Low', message: 'Tomato plot (North) needs irrigation immediately.', type: 'sensor' as const },
+                { title: 'Disease Risk', message: 'Rice blast detected in nearby farms. Precaution suggested.', type: 'ai' as const },
+            ];
+
+            initialAlerts.forEach((alert, index) => {
+                setTimeout(() => {
+                    addNotification(alert.title, alert.message, alert.type);
+                }, (index + 1) * 2000);
+            });
+        }
+    }, []); // Run only once on mount
 
     // Stats
     const summaryStats = [
@@ -35,9 +55,9 @@ export default function FarmerHomePage() {
 
     // Urgent Alerts
     const alerts = [
-        { title: 'High Temperature Risk', crop: 'Wheat', type: 'danger' },
-        { title: 'Soil Moisture Low', crop: 'Tomato', type: 'warning' },
-        { title: 'Disease Risk', crop: 'Rice', type: 'warning' },
+        { title: 'High Temperature Risk', crop: 'Wheat', type: 'danger', farm: 'Farm 2' },
+        { title: 'Soil Moisture Low', crop: 'Tomato', type: 'warning', farm: 'North Plot', zone: 'Zone A' },
+        { title: 'Disease Risk', crop: 'Rice', type: 'warning', farm: 'Farm 1' },
     ];
 
     // Today's Tasks
@@ -205,7 +225,16 @@ export default function FarmerHomePage() {
                                 </div>
                                 <div>
                                     <h4 className={`text-sm font-bold mb-1 ${alert.type === 'danger' ? 'text-red-900' : 'text-amber-900'}`}>{alert.title}</h4>
-                                    <p className={`text-xs font-bold uppercase tracking-wider ${alert.type === 'danger' ? 'text-red-600' : 'text-amber-600'}`}>Crop: {alert.crop}</p>
+                                    <div className={`flex items-center gap-1.5 text-[10px] font-extrabold uppercase tracking-tight mb-0.5 ${alert.type === 'danger' ? 'text-red-600' : 'text-amber-600'}`}>
+                                        <MapPin size={10} />
+                                        <span>{alert.crop} — {(alert as any).farm}</span>
+                                        {(alert as any).zone && (
+                                            <>
+                                                <span className="mx-1 opacity-50">•</span>
+                                                <span>{(alert as any).zone}</span>
+                                            </>
+                                        )}
+                                    </div>
                                 </div>
                             </div>
                         ))}
