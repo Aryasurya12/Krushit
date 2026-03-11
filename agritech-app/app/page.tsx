@@ -110,7 +110,7 @@ const scaleIn: Variants = {
 };
 
 export default function LandingPage() {
-  const { i18n } = useTranslation();
+  const { t, i18n } = useTranslation();
   const [isMobile, setIsMobile] = useState(false);
   // const { scrollYProgress } = useScroll();
   useEffect(() => {
@@ -127,23 +127,23 @@ export default function LandingPage() {
   }, []);
 
   const features = [
-    { icon: Sprout, title: 'Crop Registration', desc: 'Register and track multiple crops with growth stages', color: 'from-green-500 to-emerald-600' },
-    { icon: Activity, title: 'Growth Monitoring', desc: 'Real-time monitoring of crop health and development', color: 'from-blue-500 to-cyan-600' },
-    { icon: Scan, title: 'AI Disease Detection', desc: '98% accurate disease identification using AI camera', color: 'from-purple-500 to-pink-600' },
-    { icon: Droplets, title: 'Smart Irrigation', desc: 'IoT-based water management and scheduling', color: 'from-cyan-500 to-blue-600' },
-    { icon: CloudSun, title: 'Weather Integration', desc: '7-day forecast with farming advisories', color: 'from-amber-500 to-orange-600' },
-    { icon: Gauge, title: 'IoT Sensor Dashboard', desc: 'Live soil moisture, temperature, and pH tracking', color: 'from-indigo-500 to-purple-600' },
-    { icon: Mic, title: 'Voice Assistant', desc: 'Hands-free farming guidance in your language', color: 'from-rose-500 to-red-600' },
-    { icon: Users, title: 'Community Alerts', desc: 'Disease outbreak mapping in your region', color: 'from-teal-500 to-green-600' },
-    { icon: TrendingUp, title: 'Predictive Analytics', desc: 'Yield forecasting and risk assessment', color: 'from-violet-500 to-purple-600' },
-    { icon: Bell, title: 'Farm Health Score', desc: 'Comprehensive health scoring and recommendations', color: 'from-emerald-500 to-green-600' }
+    { icon: Sprout, title: t('landing.features.registration'), desc: t('landing.features.registrationDesc'), color: 'from-green-500 to-emerald-600' },
+    { icon: Activity, title: t('landing.features.monitoring'), desc: t('landing.features.monitoringDesc'), color: 'from-blue-500 to-cyan-600' },
+    { icon: Scan, title: t('landing.features.disease'), desc: t('landing.features.diseaseDesc'), color: 'from-purple-500 to-pink-600' },
+    { icon: Droplets, title: t('landing.features.irrigation'), desc: t('landing.features.irrigationDesc'), color: 'from-cyan-500 to-blue-600' },
+    { icon: CloudSun, title: t('landing.features.weather'), desc: t('landing.features.weatherDesc'), color: 'from-amber-500 to-orange-600' },
+    { icon: Gauge, title: t('landing.features.sensor'), desc: t('landing.features.sensorDesc'), color: 'from-indigo-500 to-purple-600' },
+    { icon: Mic, title: t('landing.features.voice'), desc: t('landing.features.voiceDesc'), color: 'from-rose-500 to-red-600' },
+    { icon: Users, title: t('landing.features.community'), desc: t('landing.features.communityDesc'), color: 'from-teal-500 to-green-600' },
+    { icon: TrendingUp, title: t('landing.features.analytics'), desc: t('landing.features.analyticsDesc'), color: 'from-violet-500 to-purple-600' },
+    { icon: Bell, title: t('landing.features.score'), desc: t('landing.features.scoreDesc'), color: 'from-emerald-500 to-green-600' }
   ];
 
   const steps = [
-    { num: '01', title: 'Register Farm', desc: 'Add your farm details and crop information' },
-    { num: '02', title: 'Connect Sensors', desc: 'Link IoT devices for real-time monitoring' },
-    { num: '03', title: 'Scan & Monitor', desc: 'Use AI to detect diseases and track growth' },
-    { num: '04', title: 'Get Recommendations', desc: 'Receive smart, data-driven farming advice' }
+    { num: '01', title: t('landing.steps.s1'), desc: t('landing.steps.s1Desc') },
+    { num: '02', title: t('landing.steps.s2'), desc: t('landing.steps.s2Desc') },
+    { num: '03', title: t('landing.steps.s3'), desc: t('landing.steps.s3Desc') },
+    { num: '04', title: t('landing.steps.s4'), desc: t('landing.steps.s4Desc') }
   ];
 
   const languages = [
@@ -193,7 +193,7 @@ export default function LandingPage() {
                   whileTap={{ scale: 0.95 }}
                   className="px-4 py-2 text-gray-700 font-medium hover:text-green-600 transition-colors"
                 >
-                  Sign In
+                  {t('landing.signIn')}
                 </motion.button>
               </Link>
               <Link href="/auth/register">
@@ -202,7 +202,7 @@ export default function LandingPage() {
                   whileTap={{ scale: 0.95 }}
                   className="px-6 py-2 bg-gradient-to-r from-green-600 to-emerald-600 text-white rounded-lg font-semibold shadow-lg shadow-green-500/30 transition-all"
                 >
-                  Get Started
+                  {t('landing.getStarted')}
                 </motion.button>
               </Link>
             </div>
@@ -259,12 +259,12 @@ export default function LandingPage() {
                 className="text-5xl lg:text-7xl font-bold mb-6 leading-[1.1]"
               >
                 <span className="bg-gradient-to-r from-gray-900 via-gray-800 to-gray-900 bg-clip-text text-transparent">
-                  Smart Farming
+                  {t('landing.heroTitle')}
                 </span>
                 <br />
                 <span className="relative inline-block">
                   <span className="text-transparent bg-clip-text bg-gradient-to-r from-green-600 via-emerald-500 to-green-600 animate-gradient">
-                    Powered by AI & IoT
+                    {t('landing.heroSubtitle')}
                   </span>
                   <motion.span
                     className="absolute -inset-1 bg-gradient-to-r from-green-400 to-emerald-400 opacity-20 blur-xl"
@@ -278,7 +278,7 @@ export default function LandingPage() {
                 variants={fadeUp}
                 className="text-xl text-gray-600 mb-8 leading-relaxed"
               >
-                Monitor crop health, detect diseases, optimize irrigation, and increase yield — all in one intelligent platform.
+                {t('landing.heroDesc')}
               </motion.p>
 
               <motion.div
@@ -298,7 +298,7 @@ export default function LandingPage() {
                       transition={{ duration: 0.5 }}
                     />
                     <Sprout size={20} className="relative z-10" />
-                    <span className="relative z-10">Start Farming Free</span>
+                    <span className="relative z-10">{t('landing.startFree')}</span>
                     <Sparkles size={16} className="relative z-10 opacity-0 group-hover:opacity-100 transition-opacity" />
                   </motion.button>
                 </Link>
@@ -308,7 +308,7 @@ export default function LandingPage() {
                     whileTap={{ scale: 0.95 }}
                     className="group px-8 py-4 bg-white text-gray-700 rounded-xl font-bold text-lg border-2 border-gray-200 hover:border-green-300 transition-all flex items-center justify-center gap-2 shadow-lg"
                   >
-                    Explore Features
+                    {t('landing.explore')}
                     <ArrowRight size={20} className="group-hover:translate-x-1 transition-transform" />
                   </motion.button>
                 </a>
@@ -403,9 +403,9 @@ export default function LandingPage() {
             >
               <Sparkles className="text-green-600 mx-auto" size={24} />
             </motion.div>
-            <h2 className="text-4xl lg:text-5xl font-extrabold text-gray-900 mb-6 tracking-tight">Krushit Ecosystem</h2>
+            <h2 className="text-4xl lg:text-5xl font-extrabold text-gray-900 mb-6 tracking-tight">{t('landing.ecosystem')}</h2>
             <p className="text-xl text-gray-600 max-w-3xl mx-auto leading-relaxed">
-              A complete, connected platform for smart agriculture
+              {t('landing.ecosystemDesc')}
             </p>
           </motion.div>
 
@@ -569,8 +569,8 @@ export default function LandingPage() {
             transition={{ duration: 0.6 }}
             className="text-center mb-16"
           >
-            <h2 className="text-4xl lg:text-5xl font-bold text-gray-900 mb-4">How The System Works</h2>
-            <p className="text-xl text-gray-600">Get started in 4 simple steps</p>
+            <h2 className="text-4xl lg:text-5xl font-bold text-gray-900 mb-4">{t('landing.howItWorks')}</h2>
+            <p className="text-xl text-gray-600">{t('landing.howItWorksDesc')}</p>
           </motion.div>
 
           <div className="grid md:grid-cols-4 gap-8 relative">
@@ -624,11 +624,11 @@ export default function LandingPage() {
             >
               <div className="inline-flex items-center gap-2 bg-blue-100 px-4 py-2 rounded-full mb-6">
                 <Cpu className="text-blue-600" size={16} />
-                <span className="text-sm font-semibold text-blue-700">Powered by Advanced Technology</span>
+                <span className="text-sm font-semibold text-blue-700">{t('landing.techPowered')}</span>
               </div>
-              <h2 className="text-4xl lg:text-5xl font-bold text-gray-900 mb-6">AI & IoT Integration</h2>
+              <h2 className="text-4xl lg:text-5xl font-bold text-gray-900 mb-6">{t('landing.aiIotIntegration')}</h2>
               <p className="text-lg text-gray-600 mb-8">
-                Harness the power of artificial intelligence and Internet of Things to make smarter farming decisions based on real-time data and predictive analytics.
+                {t('landing.aiIotDesc')}
               </p>
               <div className="space-y-4">
                 {[
@@ -761,9 +761,9 @@ export default function LandingPage() {
               <Globe className="text-purple-600" size={16} />
               <span className="text-sm font-semibold text-purple-700">Multilingual & Accessible</span>
             </div>
-            <h2 className="text-4xl lg:text-5xl font-bold text-gray-900 mb-4">Speak Your Language</h2>
+            <h2 className="text-4xl lg:text-5xl font-bold text-gray-900 mb-4">{t('landing.speakLanguage')}</h2>
             <p className="text-xl text-gray-600 max-w-3xl mx-auto">
-              Available in 7 Indian languages to ensure every farmer can access smart farming technology
+              {t('landing.speakLanguageDesc')}
             </p>
           </motion.div>
 

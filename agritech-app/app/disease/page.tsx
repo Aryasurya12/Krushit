@@ -133,7 +133,7 @@ export default function ScanCropPage() {
             // Trigger Notification
             addNotification(
                 t('scan.detected') + ": " + data.disease,
-                `${t('scan.detected')} in your crop with ${data.confidence}% confidence. Check the treatment plan.`,
+                t('scan.scanDetectedDesc', { confidence: data.confidence }),
                 'ai'
             );
         } catch (error: any) { // eslint-disable-line @typescript-eslint/no-explicit-any
@@ -227,18 +227,18 @@ export default function ScanCropPage() {
                     if (error) throw error;
                     
                     addNotification(
-                        "Report Saved",
-                        `Diagnosis report for ${result.diseaseLocal} has been saved to your health history.`,
+                        t('common.reportSaved'),
+                        t('common.reportSavedDesc', { disease: result.diseaseLocal }),
                         'crop'
                     );
 
-                    alert('✅ Report saved to cloud & downloaded!');
+                    alert(t('common.saveSuccess'));
                 } catch (dbError: any) { // eslint-disable-line @typescript-eslint/no-explicit-any
                     console.warn('Cloud save failed (RLS likely):', dbError);
-                    alert('⚠️ Report downloaded. (Cloud save failed due to permissions)');
+                    alert(t('common.saveFail'));
                 }
             } else {
-                alert('✅ Report downloaded! (Log in to save to cloud history)');
+                alert(t('common.downloadSuccess'));
             }
 
         } catch (error: any) { // eslint-disable-line @typescript-eslint/no-explicit-any
@@ -444,7 +444,7 @@ export default function ScanCropPage() {
                                                 <div className="bg-blue-50 rounded-xl p-4 border border-blue-100 mb-4">
                                                     <h4 className="text-sm font-bold text-blue-900 mb-2 flex items-center gap-2">
                                                         <AlertTriangle size={16} />
-                                                        Cause
+                                                        {t('scan.causeLabel')}
                                                     </h4>
                                                     <p className="text-sm text-blue-800 leading-relaxed">
                                                         {result.cause}
@@ -457,7 +457,7 @@ export default function ScanCropPage() {
                                                 <div className="bg-green-50 rounded-xl p-4 border border-green-100 mb-4">
                                                     <h4 className="text-sm font-bold text-green-900 mb-3 flex items-center gap-2">
                                                         <CheckCircle size={16} />
-                                                        Treatment Solution
+                                                        {t('scan.solutionLabel')}
                                                     </h4>
                                                     <p className="text-sm text-green-800 leading-relaxed">{result.treatment}</p>
                                                 </div>
@@ -468,7 +468,7 @@ export default function ScanCropPage() {
                                                 <div className="bg-purple-50 rounded-xl p-4 border border-purple-100 mb-4">
                                                     <h4 className="text-sm font-bold text-purple-900 mb-3 flex items-center gap-2">
                                                         <AlertTriangle size={16} />
-                                                        Prevention Tips
+                                                        {t('scan.preventionLabel')}
                                                     </h4>
                                                     <p className="text-sm text-purple-800 leading-relaxed">{result.prevention}</p>
                                                 </div>
@@ -479,7 +479,7 @@ export default function ScanCropPage() {
                                                 <div className="bg-amber-50 rounded-xl p-4 border border-amber-100 mb-4">
                                                     <h4 className="text-sm font-bold text-amber-900 mb-2 flex items-center gap-2">
                                                         <Leaf size={16} />
-                                                        Fertilizer Recommendation
+                                                        {t('scan.fertilizerLabel')}
                                                     </h4>
                                                     <p className="text-sm text-amber-800 leading-relaxed">
                                                         {result.fertilizer}

@@ -38,36 +38,36 @@ export default function CommunityPage() {
             location: 'Within 5 km',
             severity: 'High',
             reports: 12,
-            cause: 'Rust fungus infection rapidly spreading due to high humidity.',
-            treatment: 'Apply recommended field dose of Spray propiconazole twice at 7-day interval.',
-            prevention: 'Use resistant varieties and apply nitrogen fertilizer moderately.',
-            fertilizer: 'Maintain balanced NPK ratio.'
+            cause: t('community.outbreaks.rust.cause'),
+            treatment: t('community.outbreaks.rust.treatment'),
+            prevention: t('community.outbreaks.rust.prevention'),
+            fertilizer: t('community.outbreaks.rust.fertilizer')
         },
         {
             disease: 'Blast Disease',
             location: 'Within 10 km',
             severity: 'Moderate',
             reports: 8,
-            cause: 'Fungal blast infection worsened by recent unseasonal rains.',
-            treatment: 'Apply recommended field dose of Spray tricyclazole fungicide.',
-            prevention: 'Maintain proper plant spacing for air circulation.',
-            fertilizer: 'Increase potassium fertilizer to strengthen cell walls.'
+            cause: t('community.outbreaks.blast.cause'),
+            treatment: t('community.outbreaks.blast.treatment'),
+            prevention: t('community.outbreaks.blast.prevention'),
+            fertilizer: t('community.outbreaks.blast.fertilizer')
         },
         {
             disease: 'Aphid Infestation',
             location: 'Within 3 km',
             severity: 'Low',
             reports: 5,
-            cause: 'Sap-sucking pests clustering on new tender growth.',
-            treatment: 'Use neem oil spray or release natural predators like ladybugs.',
-            prevention: 'Avoid over-fertilizing with nitrogen to prevent excessive tender shoots.',
-            fertilizer: 'Apply balanced organic compost.'
+            cause: t('community.outbreaks.aphids.cause'),
+            treatment: t('community.outbreaks.aphids.treatment'),
+            prevention: t('community.outbreaks.aphids.prevention'),
+            fertilizer: t('community.outbreaks.aphids.fertilizer')
         },
     ];
 
     const handleSubmit = async () => {
         if (!formData.diseaseName || !formData.cropAffected) {
-            alert('Please fill in required fields');
+            alert(t('community.fillRequired'));
             return;
         }
 
@@ -101,13 +101,13 @@ export default function CommunityPage() {
 
             if (error) throw error;
 
-            alert('Report submitted successfully!');
+            alert(t('community.success'));
             setFormData({ diseaseName: '', cropAffected: '', description: '' });
             // Refresh the page to show new marker (or use state management)
             window.location.reload();
         } catch (err) {
             console.error('Error submitting report:', err);
-            alert('Failed to submit report. Please try again.');
+            alert(t('community.fail'));
         } finally {
             setIsSubmitting(false);
         }
@@ -143,7 +143,7 @@ export default function CommunityPage() {
                                         {t(`community.${outbreak.severity.toLowerCase()}`) || outbreak.severity}
                                     </span>
                                 </div>
-                                <p className="text-sm text-gray-500">{outbreak.location} • {outbreak.reports} {t('community.reports') || 'reports'}</p>
+                                <p className="text-sm text-gray-500">{outbreak.location} • {outbreak.reports} {t('community.reports')}</p>
                             </div>
                         ))}
                     </div>
@@ -178,7 +178,7 @@ export default function CommunityPage() {
                             disabled={isSubmitting}
                             className={`w-full py-3 bg-gray-900 text-white font-bold rounded-lg hover:bg-black transition-colors shadow-sm ${isSubmitting ? 'opacity-50 cursor-not-allowed' : ''}`}
                         >
-                            {isSubmitting ? 'Submitting...' : t('community.submitReport')}
+                            {isSubmitting ? t('community.submitting') : t('community.submitReport')}
                         </button>
                     </div>
                 </div>
@@ -215,13 +215,13 @@ export default function CommunityPage() {
                                 </button>
 
                                 <div className="pr-12 mb-6">
-                                    <h3 className="text-2xl font-bold text-gray-900 mb-2">{selectedOutbreak.disease}</h3>
+                                    <h3 className="text-2xl font-bold text-gray-900 mb-2">{t(`scan.diseases.${selectedOutbreak.disease === 'Leaf Rust' ? 'leafRust' : selectedOutbreak.disease === 'Blast Disease' ? 'blast' : 'aphids'}`) || selectedOutbreak.disease}</h3>
                                     <div className="flex flex-wrap items-center gap-3">
                                         <span className={`px-3 py-1 rounded-full text-xs font-bold uppercase flex items-center gap-1.5 ${selectedOutbreak.severity === 'High' ? 'bg-red-100 text-red-700' : selectedOutbreak.severity === 'Moderate' ? 'bg-amber-100 text-amber-700' : 'bg-blue-100 text-blue-700'}`}>
-                                            <AlertTriangle size={14} /> {selectedOutbreak.severity || 'High'} Spread Risk
+                                            <AlertTriangle size={14} /> {t(`community.${selectedOutbreak.severity.toLowerCase()}`) || selectedOutbreak.severity} {t('community.riskLevel')}
                                         </span>
                                         <span className="text-sm font-semibold text-gray-500 bg-gray-100 px-3 py-1 rounded-full border border-gray-200">
-                                            ⚠️ {selectedOutbreak.reports} fields affected {selectedOutbreak.location.toLowerCase()}
+                                            ⚠️ {selectedOutbreak.reports} {t('community.reports')} {selectedOutbreak.location.toLowerCase()}
                                         </span>
                                     </div>
                                 </div>
@@ -230,7 +230,7 @@ export default function CommunityPage() {
                                     {/* Cause */}
                                     <div className="bg-blue-50 rounded-xl p-4 border border-blue-100">
                                         <h4 className="text-sm font-bold text-blue-900 mb-2 flex items-center gap-2">
-                                            <AlertTriangle size={16} /> Cause
+                                            <AlertTriangle size={16} /> {t('community.cause')}
                                         </h4>
                                         <p className="text-sm text-blue-800 leading-relaxed font-medium">
                                             {selectedOutbreak.cause}
@@ -240,7 +240,7 @@ export default function CommunityPage() {
                                     {/* Treatment Solution */}
                                     <div className="bg-green-50 rounded-xl p-4 border border-green-100">
                                         <h4 className="text-sm font-bold text-green-900 mb-3 flex items-center gap-2">
-                                            <CheckCircle size={16} /> Treatment Solution
+                                            <CheckCircle size={16} /> {t('community.solution')}
                                         </h4>
                                         <p className="text-sm text-green-800 leading-relaxed font-medium">
                                             {selectedOutbreak.treatment}
@@ -250,7 +250,7 @@ export default function CommunityPage() {
                                     {/* Prevention */}
                                     <div className="bg-purple-50 rounded-xl p-4 border border-purple-100">
                                         <h4 className="text-sm font-bold text-purple-900 mb-3 flex items-center gap-2">
-                                            <AlertTriangle size={16} /> Prevention Tips
+                                            <AlertTriangle size={16} /> {t('community.prevention')}
                                         </h4>
                                         <p className="text-sm text-purple-800 leading-relaxed font-medium">
                                             {selectedOutbreak.prevention}
@@ -260,7 +260,7 @@ export default function CommunityPage() {
                                     {/* Fertilizer Recommendation */}
                                     <div className="bg-amber-50 rounded-xl p-4 border border-amber-100">
                                         <h4 className="text-sm font-bold text-amber-900 mb-2 flex items-center gap-2">
-                                            <Leaf size={16} /> Local Fertilizer Recommendation
+                                            <Leaf size={16} /> {t('community.fertilizer')}
                                         </h4>
                                         <p className="text-sm text-amber-800 leading-relaxed font-medium">
                                             {selectedOutbreak.fertilizer}

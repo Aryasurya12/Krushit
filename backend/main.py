@@ -654,7 +654,16 @@ async def predict_disease(file: UploadFile = File(...), language: str = "en"):
         # 10. Format disease name for display (e.g. "Potato___Early_Blight" → "Potato Early Blight")
         display_name = class_label.replace("___", " ").replace("_", " ")
 
-        logger.info(f"🔮 Predicted: {display_name} | Confidence: {confidence:.2f}% | Severity: {severity}")
+        # 10.5 Apply Localization if available
+        localized = get_local_translation(class_index, language)
+        if localized:
+            display_name = localized.get("disease", display_name)
+            info["cause"] = localized.get("cause", info["cause"]) # Fallback to info cause if missing in localized
+            info["treatment"] = localized.get("solution", info["treatment"])
+            info["prevention"] = localized.get("prevention", info["prevention"])
+            info["fertilizer"] = localized.get("fertilizer_advice", info["fertilizer"])
+
+        logger.info(f"🔮 Predicted: {display_name} | Confidence: {confidence:.2f}% | Severity: {severity} | Lang: {language}")
 
         # 11. Return — exact fields the frontend expects
         return {

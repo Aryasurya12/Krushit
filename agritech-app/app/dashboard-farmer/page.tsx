@@ -16,9 +16,9 @@ export default function FarmerHomePage() {
         // Only trigger initial alerts if we have no notifications yet
         if (notifications.length === 0) {
             const initialAlerts = [
-                { title: 'High Temperature Risk', message: 'Wheat crop is at risk due to rising temperatures.', type: 'weather' as const },
-                { title: 'Soil Moisture Low', message: 'Tomato plot (North) needs irrigation immediately.', type: 'sensor' as const },
-                { title: 'Disease Risk', message: 'Rice blast detected in nearby farms. Precaution suggested.', type: 'ai' as const },
+                { title: t('dashboard.home.highTempRisk'), message: t('dashboard.home.wheatRisk'), type: 'weather' as const },
+                { title: t('dashboard.home.soilMoistureLow'), message: t('dashboard.home.tomatoIrrigation'), type: 'sensor' as const },
+                { title: t('dashboard.home.diseaseRisk'), message: t('dashboard.home.riceBlast'), type: 'ai' as const },
             ];
 
             initialAlerts.forEach((alert, index) => {
@@ -27,14 +27,14 @@ export default function FarmerHomePage() {
                 }, (index + 1) * 2000);
             });
         }
-    }, []); // Run only once on mount
+    }, [notifications.length, addNotification, t]);
 
     // Stats
     const summaryStats = [
-        { title: 'Total Crops', value: '4 crops', icon: Sprout, color: 'text-blue-600', bg: 'bg-blue-100' },
-        { title: 'Total Farm Area', value: '8 acres', icon: Map, color: 'text-purple-600', bg: 'bg-purple-100' },
-        { title: 'Healthy Crops', value: '3', icon: CheckCircle2, color: 'text-green-600', bg: 'bg-green-100' },
-        { title: 'At Risk Crops', value: '1', icon: AlertTriangle, color: 'text-red-600', bg: 'bg-red-100' },
+        { title: t('dashboard.home.totalCrops'), value: `4 ${t('crop_data.days')}`, icon: Sprout, color: 'text-blue-600', bg: 'bg-blue-100' },
+        { title: t('dashboard.home.totalArea'), value: '8 acres', icon: Map, color: 'text-purple-600', bg: 'bg-purple-100' },
+        { title: t('dashboard.home.healthyCrops'), value: '3', icon: CheckCircle2, color: 'text-green-600', bg: 'bg-green-100' },
+        { title: t('dashboard.home.atRiskCrops'), value: '1', icon: AlertTriangle, color: 'text-red-600', bg: 'bg-red-100' },
     ];
 
     // Weather Data
@@ -42,36 +42,36 @@ export default function FarmerHomePage() {
         temp: '32°C',
         rain: '20%',
         wind: '12 km/h',
-        condition: 'Sunny with clouds',
-        advice: 'Good day for irrigation and fertilizer application.'
+        condition: t('weather.sunny'),
+        advice: t('dashboard.home.advice') + ": " + t('dashboard.home.advice') // Placeholder
     };
 
     // Farm Health Overview
     const cropHealth = [
-        { name: 'Wheat', health: 92, risk: 'Low' },
-        { name: 'Tomato', health: 75, risk: 'Medium' },
-        { name: 'Rice', health: 88, risk: 'Low' },
+        { name: t('crop_data.wheat'), health: 92, risk: t('community.low') },
+        { name: 'Tomato', health: 75, risk: t('community.moderate') },
+        { name: t('crop_data.rice'), health: 88, risk: t('community.low') },
     ];
 
     // Urgent Alerts
     const alerts = [
-        { title: 'High Temperature Risk', crop: 'Wheat', type: 'danger', farm: 'Farm 2' },
-        { title: 'Soil Moisture Low', crop: 'Tomato', type: 'warning', farm: 'North Plot', zone: 'Zone A' },
-        { title: 'Disease Risk', crop: 'Rice', type: 'warning', farm: 'Farm 1' },
+        { title: t('dashboard.home.highTempRisk'), crop: t('crop_data.wheat'), type: 'danger', farm: 'Farm 2' },
+        { title: t('dashboard.home.soilMoistureLow'), crop: 'Tomato', type: 'warning', farm: 'North Plot', zone: 'Zone A' },
+        { title: t('dashboard.home.diseaseRisk'), crop: t('crop_data.rice'), type: 'warning', farm: 'Farm 1' },
     ];
 
     // Today's Tasks
     const tasks = [
-        { id: 1, title: 'Irrigate Wheat', time: '4:00 PM', done: false },
-        { id: 2, title: 'Apply fertilizer for Rice', time: 'Today', done: false },
-        { id: 3, title: 'Inspect Tomato leaves', time: 'Today', done: true },
+        { id: 1, title: t('dashboard.home.irrigateWheat'), time: '4:00 PM', done: false },
+        { id: 2, title: t('dashboard.home.applyFertilizer'), time: t('nav.todayAdvice'), done: false },
+        { id: 3, title: t('dashboard.home.inspectLeaves'), time: t('nav.todayAdvice'), done: true },
     ];
 
     // Recent Activity
     const activities = [
-        { action: 'Scanned crop disease for Tomato', time: '2 hours ago' },
-        { action: 'Added new crop: Wheat', time: '1 day ago' },
-        { action: 'Updated irrigation schedule', time: '2 days ago' },
+        { action: t('dashboard.home.scannedCrop') + ' Tomato', time: '2 hours ago' },
+        { action: t('dashboard.home.addedNewCrop') + ': ' + t('crop_data.wheat'), time: '1 day ago' },
+        { action: t('dashboard.home.updatedIrrigation'), time: '2 days ago' },
     ];
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -91,8 +91,8 @@ export default function FarmerHomePage() {
         <FarmerDashboardLayout>
             <div className="flex flex-col md:flex-row md:items-center justify-between mb-8 gap-4">
                 <div>
-                    <h1 className="text-2xl font-bold text-gray-900 tracking-tight">Farm Command Center</h1>
-                    <p className="text-sm text-gray-500">Overview of your entire farm operations</p>
+                    <h1 className="text-2xl font-bold text-gray-900 tracking-tight">{t('dashboard.home.center')}</h1>
+                    <p className="text-sm text-gray-500">{t('dashboard.home.overview')}</p>
                 </div>
             </div>
 
@@ -104,12 +104,12 @@ export default function FarmerHomePage() {
                         <Activity size={100} />
                     </div>
                     <div className="relative z-10">
-                        <h3 className="text-sm font-bold text-gray-200 uppercase tracking-wide mb-2">Farm Health Score</h3>
+                        <h3 className="text-sm font-bold text-gray-200 uppercase tracking-wide mb-2">{t('dashboard.home.healthScore')}</h3>
                         <div className="flex items-baseline gap-2 mb-3">
                             <span className="text-5xl font-extrabold text-white">87</span>
                             <span className="text-xl text-gray-300">/ 100</span>
                         </div>
-                        <p className="text-sm text-gray-300 font-medium">Farm is in good condition.<br />1 crop needs attention.</p>
+                        <p className="text-sm text-gray-300 font-medium">{t('dashboard.home.healthGood')}<br />{t('dashboard.home.healthNeedAttention')}</p>
                     </div>
                 </motion.div>
 
@@ -120,7 +120,7 @@ export default function FarmerHomePage() {
                             <CloudSun size={32} />
                         </div>
                         <div>
-                            <h3 className="text-xl font-bold text-gray-900">Today's Weather</h3>
+                            <h3 className="text-xl font-bold text-gray-900">{t('dashboard.home.weatherToday')}</h3>
                             <p className="text-sm text-blue-800 font-bold uppercase tracking-wide">{weather.condition}</p>
                         </div>
                     </div>
@@ -128,28 +128,28 @@ export default function FarmerHomePage() {
                         <div className="flex items-center gap-3">
                             <ThermometerSun className="text-amber-500" size={24} />
                             <div>
-                                <p className="text-xs text-gray-500 uppercase font-bold tracking-wider">Temp</p>
+                                <p className="text-xs text-gray-500 uppercase font-bold tracking-wider">{t('dashboard.home.temp')}</p>
                                 <p className="text-lg font-extrabold text-gray-900">{weather.temp}</p>
                             </div>
                         </div>
                         <div className="flex items-center gap-3">
                             <CloudRain className="text-blue-500" size={24} />
                             <div>
-                                <p className="text-xs text-gray-500 uppercase font-bold tracking-wider">Rain</p>
+                                <p className="text-xs text-gray-500 uppercase font-bold tracking-wider">{t('dashboard.home.rain')}</p>
                                 <p className="text-lg font-extrabold text-gray-900">{weather.rain}</p>
                             </div>
                         </div>
                         <div className="flex items-center gap-3">
                             <Wind className="text-gray-500" size={24} />
                             <div>
-                                <p className="text-xs text-gray-500 uppercase font-bold tracking-wider">Wind</p>
+                                <p className="text-xs text-gray-500 uppercase font-bold tracking-wider">{t('dashboard.home.wind')}</p>
                                 <p className="text-lg font-extrabold text-gray-900">{weather.wind}</p>
                             </div>
                         </div>
                     </div>
                     <div className="bg-white/70 p-3 rounded-lg border border-white flex items-start gap-2 shadow-sm">
                         <Leaf className="text-agri-green mt-0.5" size={18} />
-                        <span className="text-sm font-bold text-gray-800">Advice: <span className="font-semibold text-gray-700">{weather.advice}</span></span>
+                        <span className="text-sm font-bold text-gray-800">{t('dashboard.home.advice')}: <span className="font-semibold text-gray-700">{t('weather.alertDesc')}</span></span>
                     </div>
                 </motion.div>
             </div>
@@ -169,16 +169,16 @@ export default function FarmerHomePage() {
                 <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }} className="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden flex flex-col">
                     <div className="p-5 border-b border-gray-100 bg-gray-50/50">
                         <h3 className="text-lg font-bold text-gray-900 flex items-center gap-2">
-                            <Activity className="text-agri-green" size={20} /> Farm Health Overview
+                            <Activity className="text-agri-green" size={20} /> {t('dashboard.home.healthOverview')}
                         </h3>
                     </div>
                     <div className="flex-1 overflow-x-auto">
                         <table className="w-full text-left border-collapse">
                             <thead>
                                 <tr className="border-b border-gray-100 bg-gray-50/30 text-xs font-bold text-gray-500 uppercase tracking-wider">
-                                    <th className="p-4">Crop</th>
-                                    <th className="p-4">Health Score</th>
-                                    <th className="p-4">Risk Level</th>
+                                    <th className="p-4">{t('community.cropAffected')}</th>
+                                    <th className="p-4">{t('dashboard.home.healthScore')}</th>
+                                    <th className="p-4">{t('community.diseaseName')}</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -196,7 +196,7 @@ export default function FarmerHomePage() {
                                             </div>
                                         </td>
                                         <td className="p-4">
-                                            <span className={`px-2.5 py-1 rounded-md text-[10px] font-bold uppercase tracking-wider border ${item.risk === 'Low' ? 'bg-green-50 text-green-700 border-green-200' : 'bg-amber-50 text-amber-700 border-amber-200'}`}>
+                                            <span className={`px-2.5 py-1 rounded-md text-[10px] font-bold uppercase tracking-wider border ${item.risk === t('community.low') ? 'bg-green-50 text-green-700 border-green-200' : 'bg-amber-50 text-amber-700 border-amber-200'}`}>
                                                 {item.risk}
                                             </span>
                                         </td>
@@ -206,7 +206,7 @@ export default function FarmerHomePage() {
                         </table>
                     </div>
                     <div className="p-3 border-t border-gray-50 bg-gray-50/30 text-center">
-                        <Link href="/crops" className="text-sm font-bold text-agri-green hover:underline">View All Crops Detail →</Link>
+                        <Link href="/crops" className="text-sm font-bold text-agri-green hover:underline">{t('dashboard.home.viewAllCrops')} →</Link>
                     </div>
                 </motion.div>
 
@@ -214,7 +214,7 @@ export default function FarmerHomePage() {
                 <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.4 }} className="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden flex flex-col">
                     <div className="p-5 border-b border-gray-100 flex justify-between items-center bg-red-50/30">
                         <h3 className="text-lg font-bold text-red-700 flex items-center gap-2">
-                            <AlertTriangle className="text-red-500" size={20} /> Urgent Alerts
+                            <AlertTriangle className="text-red-500" size={20} /> {t('dashboard.home.urgentAlerts')}
                         </h3>
                     </div>
                     <div className="p-5 space-y-4 flex-1">
@@ -247,7 +247,7 @@ export default function FarmerHomePage() {
                 {/* Today's Tasks */}
                 <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.5 }} className="bg-white rounded-xl border border-gray-100 shadow-sm col-span-1 flex flex-col">
                     <div className="p-5 border-b border-gray-100 bg-gray-50/50">
-                        <h3 className="text-lg font-bold text-gray-900 flex items-center gap-2"><CheckCircle size={20} className="text-agri-green" /> Today's Tasks</h3>
+                        <h3 className="text-lg font-bold text-gray-900 flex items-center gap-2"><CheckCircle size={20} className="text-agri-green" /> {t('dashboard.home.todayTasks')}</h3>
                     </div>
                     <div className="p-3 flex-1">
                         {tasks.map((task) => (
@@ -267,32 +267,32 @@ export default function FarmerHomePage() {
                 {/* Quick Actions */}
                 <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.6 }} className="col-span-1 bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden flex flex-col">
                     <div className="p-5 border-b border-gray-100 bg-gray-50/50">
-                        <h3 className="text-lg font-bold text-gray-900 flex items-center gap-2"><Activity size={20} className="text-agri-green" /> Quick Actions</h3>
+                        <h3 className="text-lg font-bold text-gray-900 flex items-center gap-2"><Activity size={20} className="text-agri-green" /> {t('dashboard.home.quickActions')}</h3>
                     </div>
                     <div className="p-5 grid grid-cols-2 gap-4 flex-1 content-center">
                         <Link href="/disease" className="flex flex-col items-center justify-center p-4 bg-gray-50 rounded-xl hover:bg-green-50 hover:text-green-700 border border-transparent hover:border-green-200 transition-all gap-3 text-center group shadow-sm hover:shadow">
                             <div className="p-3 bg-white rounded-xl shadow-xs border border-gray-100 group-hover:bg-green-100 group-hover:text-green-600 group-hover:border-green-200 text-gray-600 transition-colors">
                                 <Camera size={22} />
                             </div>
-                            <span className="text-sm font-bold text-gray-700 group-hover:text-green-700">Scan Crop</span>
+                            <span className="text-sm font-bold text-gray-700 group-hover:text-green-700">{t('dashboard.home.scanCrop')}</span>
                         </Link>
                         <Link href="/iot" className="flex flex-col items-center justify-center p-4 bg-gray-50 rounded-xl hover:bg-blue-50 hover:text-blue-700 border border-transparent hover:border-blue-200 transition-all gap-3 text-center group shadow-sm hover:shadow">
                             <div className="p-3 bg-white rounded-xl shadow-xs border border-gray-100 group-hover:bg-blue-100 group-hover:text-blue-600 group-hover:border-blue-200 text-gray-600 transition-colors">
                                 <Droplets size={22} />
                             </div>
-                            <span className="text-sm font-bold text-gray-700 group-hover:text-blue-700">Water Advice</span>
+                            <span className="text-sm font-bold text-gray-700 group-hover:text-blue-700">{t('dashboard.home.waterAdvice')}</span>
                         </Link>
                         <Link href="/crops" className="flex flex-col items-center justify-center p-4 bg-gray-50 rounded-xl hover:bg-purple-50 hover:text-purple-700 border border-transparent hover:border-purple-200 transition-all gap-3 text-center group shadow-sm hover:shadow">
                             <div className="p-3 bg-white rounded-xl shadow-xs border border-gray-100 group-hover:bg-purple-100 group-hover:text-purple-600 group-hover:border-purple-200 text-gray-600 transition-colors">
                                 <Plus size={22} />
                             </div>
-                            <span className="text-sm font-bold text-gray-700 group-hover:text-purple-700">Add Crop</span>
+                            <span className="text-sm font-bold text-gray-700 group-hover:text-purple-700">{t('dashboard.home.addCrop')}</span>
                         </Link>
                         <Link href="/crops" className="flex flex-col items-center justify-center p-4 bg-gray-50 rounded-xl hover:bg-amber-50 hover:text-amber-700 border border-transparent hover:border-amber-200 transition-all gap-3 text-center group shadow-sm hover:shadow">
                             <div className="p-3 bg-white rounded-xl shadow-xs border border-gray-100 group-hover:bg-amber-100 group-hover:text-amber-600 group-hover:border-amber-200 text-gray-600 transition-colors">
                                 <Activity size={22} />
                             </div>
-                            <span className="text-sm font-bold text-gray-700 group-hover:text-amber-700">Farm Health</span>
+                            <span className="text-sm font-bold text-gray-700 group-hover:text-amber-700">{t('dashboard.home.farmHealth')}</span>
                         </Link>
                     </div>
                 </motion.div>
@@ -300,7 +300,7 @@ export default function FarmerHomePage() {
                 {/* Recent Activity */}
                 <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.7 }} className="col-span-1 bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden flex flex-col">
                     <div className="p-5 border-b border-gray-100 bg-gray-50/50">
-                        <h3 className="text-lg font-bold text-gray-900">Recent Activity</h3>
+                        <h3 className="text-lg font-bold text-gray-900">{t('dashboard.home.recentActivity')}</h3>
                     </div>
                     <div className="p-6 flex-1">
                         <div className="relative border-l-2 border-gray-100 ml-3 space-y-7">

@@ -213,20 +213,20 @@ export default function MyCropsPage() {
                                                 <div className="bg-blue-50 p-3 rounded-lg">
                                                     <div className="flex items-center gap-2 text-blue-600 mb-1">
                                                         <Droplets size={14} />
-                                                        <span className="text-xs font-bold uppercase">Moisture</span>
+                                                        <span className="text-xs font-bold uppercase">{t('common.moisture')}</span>
                                                     </div>
                                                     <p className="text-lg font-bold text-blue-900">45%</p>
                                                 </div>
                                                 <div className="bg-amber-50 p-3 rounded-lg">
                                                     <div className="flex items-center gap-2 text-amber-600 mb-1">
                                                         <Thermometer size={14} />
-                                                        <span className="text-xs font-bold uppercase">Temp</span>
+                                                        <span className="text-xs font-bold uppercase">{t('common.temp')}</span>
                                                     </div>
                                                     <p className="text-lg font-bold text-amber-900">28°C</p>
                                                 </div>
                                                 <div className="col-span-2 bg-gray-50 p-3 rounded-lg">
-                                                    <p className="text-xs text-gray-500 mb-1">Next Action</p>
-                                                    <p className="text-sm font-medium text-gray-900">Apply Fertilizer (N-P-K) in 2 days.</p>
+                                                    <p className="text-xs text-gray-500 mb-1">{t('common.nextAction')}</p>
+                                                    <p className="text-sm font-medium text-gray-900">{t('dashboard.home.applyFertilizer')}</p>
                                                 </div>
                                             </div>
                                         </motion.div>
@@ -266,7 +266,7 @@ export default function MyCropsPage() {
                             <div className="p-6 border-b border-gray-100 flex justify-between items-center bg-gray-50/50 sticky top-0 z-10">
                                 <h3 className="text-xl font-bold text-gray-900 flex items-center gap-2">
                                     <Sprout className="text-agri-green" size={24} />
-                                    Add New Crop
+                                    {t('crop.addNew')}
                                 </h3>
                                 <button onClick={() => setShowModal(false)} className="text-gray-400 hover:text-red-500 transition-colors p-1.5 hover:bg-red-50 rounded-full">
                                     <X size={22} />

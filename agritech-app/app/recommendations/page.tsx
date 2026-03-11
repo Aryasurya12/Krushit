@@ -17,19 +17,19 @@ export default function FarmHealthPage() {
             title: t('messages.waterToday'),
             description: t('messages.soilDryTemp'),
             priority: 'high',
-            action: t('water.liveRec') || 'Water 500L', // Fallback or strict translation
+            action: t('water.liveRec') || 'Water 500L',
             category: 'irrigation',
             farmName: 'Farm 2',
-            cropName: 'Wheat Crop',
+            cropName: t('crop_data.wheat'),
             sensorZone: 'Soil Sensor Zone 3'
         },
         {
             id: 2,
             icon: Sprout,
             title: t('messages.needNutrients'),
-            description: 'NPK levels are low. Apply fertilizer soon.', // Need translation key
+            description: t('recommendations.npkLow'),
             priority: 'medium',
-            action: 'Apply 50kg NPK fertilizer',
+            action: t('recommendations.applyNPK'),
             category: 'nutrition',
             farmName: 'North Plot',
             cropName: 'Tomato Field'
@@ -49,12 +49,12 @@ export default function FarmHealthPage() {
             id: 4,
             icon: Sun,
             title: t('messages.goodCondition'),
-            description: 'Weather is good for crop growth this week.', // Need translation key?
+            description: t('recommendations.weatherGood'),
             priority: 'low',
             action: t('recommendations.recommendedAction'),
             category: 'general',
             farmName: 'East Field',
-            cropName: 'Rice Plantation',
+            cropName: t('crop_data.rice'),
             sensorZone: 'Weather Station 1'
         },
     ];
