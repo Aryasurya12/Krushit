@@ -2,6 +2,7 @@
 
 import { useState, useRef, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
+import { usePathname } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import { MessageCircle, X, Mic, Send, VolumeX } from 'lucide-react';
 
@@ -24,6 +25,63 @@ export default function AIChatbot() {
     const messagesEndRef = useRef<HTMLDivElement>(null);
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const recognitionRef = useRef<any>(null);
+
+    const pathname = usePathname();
+    const isCropPage = pathname?.includes('/crops') || pathname?.includes('/dashboard-farmer');
+    const [sendTrigger, setSendTrigger] = useState<string | null>(null);
+    const [allCrops, setAllCrops] = useState<any[]>([]);
+
+    useEffect(() => {
+        const fetchCrops = async () => {
+            try {
+                const res = await fetch('http://127.0.0.1:8001/crops');
+                if (res.ok) {
+                    const data = await res.json();
+                    setAllCrops(data);
+                }
+            } catch (err) {
+                console.warn('🤖 Could not fetch crops data for context:', err);
+            }
+        };
+        fetchCrops();
+    }, []);
+
+    // In a real app these would come from global state. We provide real-time mock data.
+    const getPageContext = () => {
+        // Try to find if we're on a specific crop's page to prioritize its data
+        const cropIdFromUrl = pathname?.split('/crops/')?.[1];
+        const specificCrop = allCrops.find(c => c.field_id.toString() === cropIdFromUrl);
+
+        return {
+            crops: allCrops, // All registered crops IoT data
+            crop: specificCrop || (isCropPage ? {
+                name: 'Wheat',
+                variety: 'HD-2967',
+                stage: 'Vegetative',
+                area: '2 Acres',
+                daysSinceSowing: 145
+            } : {}),
+            sensor: specificCrop?.sensor || {
+                moisture: 28,
+                temperature: 24,
+                humidity: 65,
+                ph: 6.5
+            },
+            weather: {
+                prediction: 'Rain expected in 2 days',
+                maxTemp: 36,
+                risk: 'None'
+            }
+        };
+    };
+
+    useEffect(() => {
+        if (sendTrigger) {
+            handleSend(sendTrigger);
+            setSendTrigger(null);
+        }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [sendTrigger]);
 
     // FIXED: Load voices asynchronously
     useEffect(() => {
@@ -67,9 +125,10 @@ export default function AIChatbot() {
 
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
             recognitionRef.current.onresult = (event: any) => {
-                const transcript = event.results[0][0].transcript;
+                const transcript = event.results[event.results.length - 1][0].transcript;
                 setInput(transcript);
                 setIsListening(false);
+                setSendTrigger(transcript); // Auto-send
             };
 
             recognitionRef.current.onerror = () => {
@@ -222,7 +281,7 @@ export default function AIChatbot() {
     };
 
     // FIXED: Dynamic AI-powered response generator (calls FastAPI Backend)
-    const getAIResponse = async (userMessage: string): Promise<string> => {
+    const getAIResponse = async (userMessage: string, historyPayload: any[]): Promise<string> => {
         const lang = i18n.language as 'en' | 'hi' | 'mr';
 
         try {
@@ -235,7 +294,8 @@ export default function AIChatbot() {
                 body: JSON.stringify({
                     message: userMessage,
                     language: lang,
-                    history: [] // Simplified for debugging
+                    history: historyPayload,
+                    context: getPageContext()
                 }),
             });
 
@@ -264,24 +324,26 @@ export default function AIChatbot() {
 
 
     // Send message
-    const handleSend = async () => {
-        if (!input.trim()) return;
+    const handleSend = async (overrideInput?: string) => {
+        const textToSend = typeof overrideInput === 'string' ? overrideInput : input;
+        if (!textToSend.trim()) return;
 
         const userMessage: Message = {
             id: Date.now().toString(),
-            text: input,
+            text: textToSend,
             sender: 'user',
             timestamp: new Date()
         };
 
+        // Capture previous history to send to server
+        const previousHistory = messages.map(m => ({ sender: m.sender, text: m.text }));
+
         setMessages(prev => [...prev, userMessage]);
-        const userInput = input; // Store input before clearing
         setInput('');
         setIsTyping(true);
 
-        // FIXED: Await AI response (dynamic, not hardcoded)
         try {
-            const botResponse = await getAIResponse(userInput);
+            const botResponse = await getAIResponse(textToSend, previousHistory);
             const botMessage: Message = {
                 id: (Date.now() + 1).toString(),
                 text: botResponse,
@@ -336,7 +398,9 @@ export default function AIChatbot() {
                                     <MessageCircle size={20} />
                                 </div>
                                 <div>
-                                    <h3 className="font-bold text-sm">AI Farm Assistant</h3>
+                                    <h3 className="font-bold text-sm">
+                                        {isCropPage ? 'AI Assistant – Wheat Field' : 'AI Farm Assistant'}
+                                    </h3>
                                     <p className="text-xs text-green-100">Always here to help</p>
                                 </div>
                             </div>
@@ -425,7 +489,7 @@ export default function AIChatbot() {
                                     </button>
                                 </div>
                                 <button
-                                    onClick={isSpeaking ? stopSpeaking : handleSend}
+                                    onClick={isSpeaking ? stopSpeaking : () => handleSend()}
                                     disabled={!input.trim() && !isSpeaking}
                                     className={`w-10 h-10 rounded-xl flex items-center justify-center transition-all ${isSpeaking
                                         ? 'bg-amber-500 text-white hover:bg-amber-600'

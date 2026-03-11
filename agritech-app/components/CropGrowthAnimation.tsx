@@ -3,15 +3,24 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Info } from 'lucide-react';
+import {
+  SeedIllustration,
+  GerminationIllustration,
+  SeedlingIllustration,
+  VegetativeIllustration,
+  FloweringIllustration,
+  GrainIllustration,
+  HarvestIllustration
+} from './CropStageIllustrations';
 
 const stages = [
-    { id: 'Seed', name: 'Seed', description: 'Active Dormancy Stage', info: 'Small seed inside the soil waiting for moisture.', image: '/images/crops/seed.png' },
-    { id: 'Germination', name: 'Germination', description: 'Sprouting Phase', info: 'Tiny sprout emerging from the soil as roots establish.', image: '/images/crops/germination.png' },
-    { id: 'Seedling', name: 'Seedling', description: 'Initial Growth', info: 'Small plant with the first two true leaves developed.', image: '/images/crops/seedling.png' },
-    { id: 'Vegetative', name: 'Vegetative', description: 'Leaf & Stem Development', info: 'Taller plant with multiple leaves and a thickening stem.', image: '/images/crops/vegetative.png' },
-    { id: 'Flowering', name: 'Flowering', description: 'Reproductive Phase', info: 'Plant begins to show flowers or reproductive structures.', image: '/images/crops/flowering.png' },
-    { id: 'Grain Formation', name: 'Grain Formation', description: 'Yield Development', info: 'Grains or fruits are forming on the plant structure.', image: '/images/crops/grain.png' },
-    { id: 'Harvest', name: 'Harvest', description: 'Maturity Stage', info: 'Fully mature plant with full grain structure ready for collection.', image: '/images/crops/harvest.png' }
+    { id: 'Seed', name: 'Seed', description: 'Active Dormancy Stage', info: 'Small seed inside the soil waiting for moisture.' },
+    { id: 'Germination', name: 'Germination', description: 'Sprouting Phase', info: 'Tiny sprout emerging from the soil as roots establish.' },
+    { id: 'Seedling', name: 'Seedling', description: 'Initial Growth', info: 'Small plant with the first two true leaves developed.' },
+    { id: 'Vegetative', name: 'Vegetative', description: 'Leaf & Stem Development', info: 'Taller plant with multiple leaves and a thickening stem.' },
+    { id: 'Flowering', name: 'Flowering', description: 'Reproductive Phase', info: 'Plant begins to show flowers or reproductive structures.' },
+    { id: 'Grain Formation', name: 'Grain Formation', description: 'Yield Development', info: 'Grains or fruits are forming on the plant structure.' },
+    { id: 'Harvest', name: 'Harvest', description: 'Maturity Stage', info: 'Fully mature plant with full grain structure ready for collection.' }
 ];
 
 const LeafIcon = ({ status }: { status: 'completed' | 'current' | 'future' }) => (
@@ -114,10 +123,8 @@ export const CropGrowthAnimation: React.FC<CropGrowthAnimationProps> = ({ curren
                                     transition={{ duration: 0.5 }}
                                 >
                                     <div className="relative group/crop">
-                                        <motion.img
-                                            src={stage.image}
-                                            alt={stage.name}
-                                            className="w-auto pointer-events-none drop-shadow-2xl"
+                                        <motion.div
+                                            className="w-auto pointer-events-none"
                                             style={{ 
                                                 maxHeight: i === 0 ? '40px' : i === 1 ? '60px' : i === 2 ? '100px' : i === 3 ? '150px' : i === 4 ? '180px' : '200px',
                                                 zIndex: isCurrent ? 50 : 10,
@@ -127,7 +134,20 @@ export const CropGrowthAnimation: React.FC<CropGrowthAnimationProps> = ({ curren
                                                 y: [0, -5, 0]
                                             } : {}}
                                             transition={{ repeat: Infinity, duration: 4, ease: "easeInOut" }}
-                                        />
+                                        >
+                                            {(() => {
+                                                switch (stage.id) {
+                                                    case 'Seed': return <SeedIllustration />;
+                                                    case 'Germination': return <GerminationIllustration />;
+                                                    case 'Seedling': return <SeedlingIllustration />;
+                                                    case 'Vegetative': return <VegetativeIllustration />;
+                                                    case 'Flowering': return <FloweringIllustration />;
+                                                    case 'Grain Formation': return <GrainIllustration />;
+                                                    case 'Harvest': return <HarvestIllustration />;
+                                                    default: return null;
+                                                }
+                                            })()}
+                                        </motion.div>
                                         <div className={`absolute bottom-0 left-1/2 -translate-x-1/2 w-full h-4 blur-md opacity-20 bg-black rounded-full pointer-events-none -z-10`} />
                                     </div>
                                 </motion.div>

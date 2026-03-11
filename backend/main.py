@@ -9,6 +9,7 @@ import tensorflow as tf
 import numpy as np
 import google.generativeai as genai
 from dotenv import load_dotenv
+from typing import List, Dict
 
 # Load env variables
 load_dotenv()
@@ -25,12 +26,12 @@ if supabase:
     try:
         # Simple test query to verify connection
         supabase.table("users").select("id").limit(1).execute()
-        print(f"✅ Supabase Connection: SUCCESS (Project: {SUPABASE_URL})")
+        print(f"Supabase Connection: SUCCESS (Project: {SUPABASE_URL})")
     except Exception as e:
-        print(f"⚠️ Supabase Connection: SEMI-CONNECTED (Auth works, but DB access error: {e})")
-        print(f"👉 Note: Using ANON key. If RLS is enabled, DB access might be restricted.")
+        print(f"Supabase Connection: SEMI-CONNECTED (Auth works, but DB access error: {e})")
+        print(f"Note: Using ANON key. If RLS is enabled, DB access might be restricted.")
 else:
-    print("❌ Supabase Connection: FAILED (Env variables missing)")
+    print("Supabase Connection: FAILED (Env variables missing)")
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -48,6 +49,7 @@ class ChatRequest(BaseModel):
     message: str
     history: list = []
     language: str = "en"
+    context: dict = None
 
 # New Models for Social & Operations
 class PostCreate(BaseModel):
@@ -97,10 +99,10 @@ def load_recommendations():
     """Load the CSV into a nested dictionary: {disease_name: {severity: info_dict}}"""
     import csv
     global RECOMMENDATION_DB
-    print(f"⏳ Loading recommendations from {os.path.abspath(CSV_PATH)}...")
+    print(f"Loading recommendations from {os.path.abspath(CSV_PATH)}...")
     try:
         if not os.path.exists(CSV_PATH):
-            print(f"⚠️ Recommendation CSV not found at {CSV_PATH}")
+            print(f"Recommendation CSV not found at {CSV_PATH}")
             return
 
         with open(CSV_PATH, mode='r', encoding='utf-8') as f:
@@ -118,9 +120,9 @@ def load_recommendations():
                     "prevention": row['prevention_tips'],
                     "fertilizer": row['fertilizer_recommendation']
                 }
-        print(f"✅ Loaded recommendations for {len(RECOMMENDATION_DB)} diseases.")
+        print(f"Loaded recommendations for {len(RECOMMENDATION_DB)} diseases.")
     except Exception as e:
-        print(f"❌ Failed to load recommendation CSV: {e}")
+        print(f"Failed to load recommendation CSV: {e}")
 
 # Initial load
 load_recommendations()
@@ -128,30 +130,30 @@ load_recommendations()
 # ──────────────────────────────────────────────────────────────────────────────
 # 2.5 Load class names
 # ──────────────────────────────────────────────────────────────────────────────
-print(f"⏳ Loading class names from {os.path.abspath(CLASS_PATH)}...")
+print(f"Loading class names from {os.path.abspath(CLASS_PATH)}...")
 try:
     with open(CLASS_PATH, "r") as f:
         raw = json.load(f)
     # raw is {"0": "Corn___Common_Rust", "1": ..., ...}
     # Build an ordered list by integer key
     class_names = [raw[str(i)] for i in range(len(raw))]
-    print(f"✅ Loaded {len(class_names)} class names.")
+    print(f"Loaded {len(class_names)} class names.")
 except Exception as e:
-    print(f"❌ Failed to load class names: {e}")
+    print(f"Failed to load class names: {e}")
     class_names = []
 
 # ──────────────────────────────────────────────────────────────────────────────
 # 3. Load ML model once at startup
 #    Model input: (None, 128, 128, 3)  →  Flatten(25088)  →  Dense(512)  →  Dense(22)
 # ──────────────────────────────────────────────────────────────────────────────
-print(f"⏳ Loading ML model from {os.path.abspath(MODEL_PATH)}...")
+print(f"Loading ML model from {os.path.abspath(MODEL_PATH)}...")
 try:
     if not os.path.exists(MODEL_PATH):
         raise FileNotFoundError(f"Model file not found at {MODEL_PATH}")
     ml_model = tf.keras.models.load_model(MODEL_PATH)
-    print(f"✅ ML model loaded. Input shape: {ml_model.input_shape}")
+    print(f"ML model loaded. Input shape: {ml_model.input_shape}")
 except Exception as e:
-    print(f"❌ Failed to load ML model: {e}")
+    print(f"Failed to load ML model: {e}")
     ml_model = None
 
 # ──────────────────────────────────────────────────────────────────────────────
@@ -328,7 +330,7 @@ async def lifespan(app: FastAPI):
     # Refresh recommendations on startup
     load_recommendations()
     yield
-    print("👋 Shutting down ML API...")
+    print("Shutting down ML API...")
 
 app = FastAPI(
     title="AgriTech ML Disease Detection API",
@@ -529,6 +531,37 @@ async def health_check():
         "ai_chat_status": "Active" if chat_ai is not None else "Fallback Mode"
     }
 
+# Mock IoT crop data
+MOCK_CROPS = [
+    {
+        "crop": "Wheat",
+        "field_id": 1,
+        "stage": "Vegetative",
+        "sensor": {
+            "moisture": 28,
+            "temperature": 24,
+            "humidity": 65,
+            "ph": 6.5,
+        },
+    },
+    {
+        "crop": "Cotton",
+        "field_id": 2,
+        "stage": "Flowering",
+        "sensor": {
+            "moisture": 42,
+            "temperature": 26,
+            "humidity": 70,
+            "ph": 6.8,
+        },
+    },
+]
+
+@app.get("/crops")
+async def get_crops() -> List[Dict]:
+    """Return mock crop data for all registered fields."""
+    return MOCK_CROPS
+
 
 @app.post("/chat")
 async def chat_with_ai(request: ChatRequest):
@@ -542,13 +575,44 @@ async def chat_with_ai(request: ChatRequest):
         text = h.get("text", "")
         gemini_history.append({"role": role, "parts": [text]})
 
+    context_str = ""
+    if request.context:
+        context_str = "\n\n### Context Information ###\n"
+        
+        # All Crops Context
+        if "crops" in request.context:
+            context_str += "Farmer Registered Crops & Real-time IoT Data:\n"
+            for c in request.context["crops"]:
+                s = c.get("sensor", {})
+                context_str += f"- Crop: {c.get('crop')}, Stage: {c.get('stage')}, Soil Moisture: {s.get('moisture')}%, Soil Temp: {s.get('temperature')}°C, Soil pH: {s.get('ph')}\n"
+            context_str += "\n"
+
+        if "crop" in request.context:
+            c = request.context["crop"]
+            context_str += f"Current Viewed Crop: {c.get('name', 'Unknown')}\nVariety: {c.get('variety', 'Unknown')}\nGrowth Stage: {c.get('stage', 'Unknown')}\nArea: {c.get('area', 'Unknown')}\nPlanted Date / Days Since Sowing: {c.get('daysSinceSowing', 'Unknown')}\n\n"
+        if "sensor" in request.context:
+            s = request.context["sensor"]
+            context_str += f"Current Viewed Field IoT Sensors -> Soil Moisture: {s.get('moisture', 'Unknown')}, Soil Temperature: {s.get('temperature', 'Unknown')}, Air Humidity: {s.get('humidity', 'Unknown')}, Soil pH: {s.get('ph', 'Unknown')}\n\n"
+        if "weather" in request.context:
+            w = request.context["weather"]
+            context_str += f"Local Weather Forecast -> {w.get('prediction', 'Unknown')}, Max Temp: {w.get('maxTemp', 'Unknown')}, Heat/Cold Risk: {w.get('risk', 'None')}\n"
+
     system_instruction = f"""
-    You are 'AgriTech bot', a helpful farming expert from Maharashtra/India.
+    You are 'AgriTech bot', a crop-stage-aware intelligent farm advisor from Maharashtra/India.
     MANDATORY: You MUST respond ONLY in the {lang} language.
     Even if the user asks in English, translate your answer to {lang}.
-    Goal: Provide specific, practical advice for crops, soil, pests, and weather.
-    Keep it professional and concise (max 3 sentences).
+    
+    Goal: Transform into a field-specific digital agronomist using real-time farm data provided below.
+    - Identify which crop field the user is asking about (e.g. Wheat, Cotton) based on their question.
+    - Reference specific sensor readings (moisture, pH, temp) for THAT crop in your answer.
+    - Mention both the crop name and its current growth stage.
+    - If it's a general question, analyze all available crop datasets.
+    - Use weather forecast predictive data for actionable advice (e.g. delay irrigation if rain is expected).
+    - Give Stage-specific advice: Watering, Fertilizer, Disease prevention, Heat stress, Pest risk.
+    - Keep it professional and concise (max 3-4 sentences).
+    
     Current language set to: {lang}
+    {context_str}
     """
 
     if chat_ai:
@@ -686,5 +750,5 @@ async def predict_disease(file: UploadFile = File(...), language: str = "en"):
 
 if __name__ == "__main__":
     import uvicorn
-    print("🚀 Starting AgriTech AI Backend on http://0.0.0.0:8001")
+    print("Starting AgriTech AI Backend on http://0.0.0.0:8001")
     uvicorn.run(app, host="0.0.0.0", port=8001)

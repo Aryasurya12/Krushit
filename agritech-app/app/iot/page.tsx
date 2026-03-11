@@ -29,7 +29,11 @@ import {
     MapPin,
     FlaskConical,
     ChevronDown,
-    ChevronUp
+    ChevronUp,
+    Bug,
+    Mic,
+    ShieldAlert,
+    Sparkles
 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { cropsApi, iotSensorsApi } from '@/lib/api';
@@ -322,6 +326,156 @@ const CropAdvisoryCard = ({ crop, index }: any) => {
                                         <button className={`p-8 rounded-full shadow-lg transition-all active:scale-95 ${isVegetative ? 'bg-agri-green hover:bg-emerald-700 text-white shadow-green-200' : 'bg-gray-100 text-gray-400 cursor-not-allowed'}`}>
                                             <FlaskConical size={40} />
                                         </button>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <hr className="border-gray-100" />
+
+                            {/* Section 3: Smart Field Actions */}
+                            <div className="space-y-8">
+                                <div className="flex items-center gap-3">
+                                    <div className="p-2 bg-amber-500 text-white rounded-lg shadow-md">
+                                        <Zap size={20} />
+                                    </div>
+                                    <h3 className="text-xl font-black text-gray-900 tracking-tight">Smart Field Actions</h3>
+                                </div>
+
+                                {/* REFACTORED: Action Buttons in 3-column grid */}
+                                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                                    <div className="bg-white p-6 md:p-8 rounded-[2.5rem] border border-gray-100 shadow-sm flex flex-col items-center text-center gap-6 group hover:border-blue-200 transition-all cursor-pointer">
+                                        <div className={`p-5 rounded-2xl transition-all ${isMoistureLow ? 'bg-blue-600 text-white shadow-xl shadow-blue-100' : 'bg-gray-100 text-gray-400'}`}>
+                                            <Droplets size={32} />
+                                        </div>
+                                        <div>
+                                            <h4 className="text-lg font-bold text-gray-900 mb-1">Irrigate Now</h4>
+                                            <p className="text-xs text-gray-500 font-medium h-8">
+                                                {isMoistureLow ? `Drip • ${crop.area * 100}L • 45 min` : 'Currently Hydrated'}
+                                            </p>
+                                        </div>
+                                        <button 
+                                            disabled={!isMoistureLow}
+                                            className={`w-full py-4 rounded-2xl text-sm font-black transition-all ${isMoistureLow ? 'bg-blue-600 text-white hover:bg-blue-700 shadow-lg' : 'bg-gray-50 text-gray-300 cursor-not-allowed'}`}
+                                        >
+                                            Start Irrigation
+                                        </button>
+                                    </div>
+
+                                    <div className="bg-white p-6 md:p-8 rounded-[2.5rem] border border-gray-100 shadow-sm flex flex-col items-center text-center gap-6 group hover:border-green-200 transition-all cursor-pointer">
+                                        <div className={`p-5 rounded-2xl transition-all ${isVegetative ? 'bg-agri-green text-white shadow-xl shadow-green-100' : 'bg-gray-100 text-gray-400'}`}>
+                                            <FlaskConical size={32} />
+                                        </div>
+                                        <div>
+                                            <h4 className="text-lg font-bold text-gray-900 mb-1">Apply Fertilizer</h4>
+                                            <p className="text-xs text-gray-500 font-medium h-8">
+                                                {isVegetative ? 'Urea / NPK • 40kg • Broadcast' : 'Nutrients Balanced'}
+                                            </p>
+                                        </div>
+                                        <button 
+                                            disabled={!isVegetative}
+                                            className={`w-full py-4 rounded-2xl text-sm font-black transition-all ${isVegetative ? 'bg-agri-green text-white hover:bg-emerald-700 shadow-lg' : 'bg-gray-50 text-gray-300 cursor-not-allowed'}`}
+                                        >
+                                            Apply Nutrient
+                                        </button>
+                                    </div>
+
+                                    <div className="bg-white p-6 md:p-8 rounded-[2.5rem] border border-gray-100 shadow-sm flex flex-col items-center text-center gap-6 group hover:border-amber-200 transition-all cursor-pointer">
+                                        <div className="p-5 bg-amber-100 text-amber-600 rounded-2xl group-hover:bg-amber-600 group-hover:text-white transition-all shadow-amber-50">
+                                            <Bug size={32} />
+                                        </div>
+                                        <div>
+                                            <h4 className="text-lg font-bold text-gray-900 mb-1">Pest Control</h4>
+                                            <p className="text-xs text-gray-500 font-medium h-8">Low Risk • Scheduled Monitoring</p>
+                                        </div>
+                                        <button className="w-full py-4 bg-gray-900 text-white rounded-2xl text-sm font-black hover:bg-black transition-all shadow-lg hover:shadow-gray-200">
+                                            Spray Pesticide
+                                        </button>
+                                    </div>
+                                </div>
+
+                                {/* Acoustic Pest Monitoring Subsection */}
+                                <div className="bg-gradient-to-br from-[#111827] to-[#1f2937] rounded-[2.5rem] p-6 md:p-8 border border-white/5 relative overflow-hidden">
+                                    <div className="absolute top-0 right-0 p-8 opacity-10">
+                                        <Bug size={120} className="text-white" />
+                                    </div>
+                                    
+                                    <div className="relative z-10 space-y-8">
+                                        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                                            <div className="flex items-center gap-4">
+                                                <div className="w-14 h-14 bg-purple-500/20 rounded-2xl flex items-center justify-center border border-purple-500/30 text-purple-400">
+                                                    <Mic size={28} />
+                                                </div>
+                                                <div>
+                                                    <h4 className="text-xl font-black text-white tracking-tight">Acoustic Pest Swarm Detection</h4>
+                                                    <p className="text-purple-300/60 text-xs font-bold uppercase tracking-widest">Real-time Spectral Frequency Analysis</p>
+                                                </div>
+                                            </div>
+                                            <div className="flex items-center gap-2 px-4 py-2 bg-green-500/10 border border-green-500/20 rounded-full">
+                                                <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse" />
+                                                <span className="text-green-500 text-[10px] font-black uppercase tracking-widest">FFT Signal Active</span>
+                                            </div>
+                                        </div>
+
+                                        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-center">
+                                            <div className="lg:col-span-2 space-y-4">
+                                                <div className="h-40 bg-black/40 backdrop-blur-xl rounded-2xl border border-white/5 p-6 flex flex-col justify-between">
+                                                    <div className="flex justify-between items-center">
+                                                        <span className="text-[10px] font-mono text-purple-400/80 uppercase">dB Spectral Density</span>
+                                                        <span className="text-[10px] font-mono text-gray-500 uppercase">2000Hz - 8500Hz Range</span>
+                                                    </div>
+                                                    
+                                                    {/* Simulated Spectrogram/FFT Viz */}
+                                                    <div className="flex items-end gap-1.5 h-20">
+                                                        {[...Array(24)].map((_, i) => (
+                                                            <motion.div
+                                                                key={i}
+                                                                className="flex-1 bg-gradient-to-t from-purple-600 to-indigo-400 rounded-t-sm"
+                                                                animate={{ 
+                                                                    height: [
+                                                                        15 + Math.random() * 20, 
+                                                                        Math.random() * 60 + 20, 
+                                                                        15 + Math.random() * 25
+                                                                    ] 
+                                                                }}
+                                                                transition={{ 
+                                                                    repeat: Infinity, 
+                                                                    duration: 1.5 + Math.random(), 
+                                                                    ease: "easeInOut",
+                                                                    delay: i * 0.05
+                                                                }}
+                                                            />
+                                                        ))}
+                                                    </div>
+                                                    
+                                                    <div className="flex justify-between text-[8px] font-mono text-gray-600">
+                                                        <span>2kHz</span>
+                                                        <span>4kHz</span>
+                                                        <span>Detection Zone (Biological)</span>
+                                                        <span>6kHz</span>
+                                                        <span>8kHz</span>
+                                                    </div>
+                                                </div>
+                                            </div>
+
+                                            <div className="bg-white/5 rounded-3xl p-6 border border-white/10 space-y-4">
+                                                <div className="flex items-center gap-3 text-amber-400 mb-2">
+                                                    <ShieldAlert size={20} />
+                                                    <h5 className="text-sm font-black uppercase tracking-widest">Pest Risk Assessment</h5>
+                                                </div>
+                                                <p className="text-gray-300 text-sm leading-relaxed">
+                                                    Microphone arrays in {crop.name} Field {index + 1} show normal background acoustic profiles. No locust or moth swarm wingbeat signatures detected.
+                                                </p>
+                                                <div className="pt-2">
+                                                    <div className="flex items-center justify-between text-[10px] text-gray-500 font-bold uppercase mb-2">
+                                                        <span>Detection Probability</span>
+                                                        <span>0.4%</span>
+                                                    </div>
+                                                    <div className="h-1 bg-white/10 rounded-full overflow-hidden">
+                                                        <div className="h-full w-[0.4%] bg-green-500" />
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
                                     </div>
                                 </div>
                             </div>
