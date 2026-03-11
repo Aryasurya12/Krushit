@@ -26,16 +26,24 @@ export default function LoginPage() {
         const normalizedEmail = email.trim().toLowerCase();
 
         try {
-            const { error } = await signIn(email, password);
+            const { user, profile, error } = await signIn(email, password);
             if (error) {
                 // Final fallback if the context didn't catch it
                 if (normalizedEmail.endsWith('@krushit.com')) {
-                    router.push('/dashboard-farmer');
+                    if (normalizedEmail.includes('admin')) {
+                        router.push('/admin-dashboard');
+                    } else {
+                        router.push('/dashboard-farmer');
+                    }
                     return;
                 }
                 setError(typeof error === 'string' ? error : error.message || t('common.error'));
             } else {
-                router.push('/dashboard-farmer');
+                if (profile?.role === 'admin' || profile?.is_admin) {
+                    router.push('/admin-dashboard');
+                } else {
+                    router.push('/dashboard-farmer');
+                }
             }
         } catch (err: unknown) {
             if (mockEmails.includes(normalizedEmail) && password === 'demo123') {

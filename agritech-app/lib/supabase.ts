@@ -24,6 +24,8 @@ export type Database = {
                     phone: string;
                     region: string;
                     language: string;
+                    is_admin: boolean;
+                    role: 'farmer' | 'admin';
                     created_at: string;
                     updated_at: string;
                 };
@@ -75,13 +77,28 @@ export type Database = {
                 Insert: Omit<Database['public']['Tables']['iot_sensors']['Row'], 'id'>;
                 Update: Partial<Database['public']['Tables']['iot_sensors']['Insert']>;
             };
+            iot_devices: {
+                Row: {
+                    id: string;
+                    user_id: string;
+                    farm_name: string;
+                    status: 'online' | 'offline' | 'maintenance';
+                    battery: number;
+                    last_update: string;
+                    connectivity: string;
+                    model: string;
+                    created_at: string;
+                };
+                Insert: Omit<Database['public']['Tables']['iot_devices']['Row'], 'id' | 'created_at'>;
+                Update: Partial<Database['public']['Tables']['iot_devices']['Insert']>;
+            };
             recommendations: {
                 Row: {
                     id: string;
                     user_id: string;
                     crop_id: string;
-                    type: string;
-                    priority: string;
+                    type: 'water' | 'fertilizer' | 'pest' | 'disease' | 'harvest' | 'general';
+                    priority: 'low' | 'medium' | 'high';
                     title: string;
                     description: string;
                     action: string;
@@ -90,6 +107,31 @@ export type Database = {
                 };
                 Insert: Omit<Database['public']['Tables']['recommendations']['Row'], 'id' | 'created_at'>;
                 Update: Partial<Database['public']['Tables']['recommendations']['Insert']>;
+            };
+            complaints: {
+                Row: {
+                    id: string;
+                    user_id: string;
+                    farmer_name: string;
+                    issue_description: string;
+                    status: 'pending' | 'resolved';
+                    created_at: string;
+                };
+                Insert: Omit<Database['public']['Tables']['complaints']['Row'], 'id' | 'created_at'>;
+                Update: Partial<Database['public']['Tables']['complaints']['Insert']>;
+            };
+            notifications: {
+                Row: {
+                    id: string;
+                    user_id: string;
+                    type: 'disease' | 'weather' | 'irrigation' | 'harvest' | 'general';
+                    title: string;
+                    message: string;
+                    is_read: boolean;
+                    created_at: string;
+                };
+                Insert: Omit<Database['public']['Tables']['notifications']['Row'], 'id' | 'created_at'>;
+                Update: Partial<Database['public']['Tables']['notifications']['Insert']>;
             };
         };
     };

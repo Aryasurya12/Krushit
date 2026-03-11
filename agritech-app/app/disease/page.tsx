@@ -3,7 +3,7 @@
 import { useState, useRef, useEffect } from 'react';
 import FarmerDashboardLayout from '@/components/FarmerDashboardLayout';
 import { useTranslation } from 'react-i18next';
-import { Upload, Camera, AlertTriangle, CheckCircle, FileText, Share2, Save, X, Leaf, History, TrendingUp as TrendUp, TrendingDown, Minus, ChevronDown, ChevronUp, Calendar } from 'lucide-react';
+import { Upload, Camera, AlertTriangle, CheckCircle, FileText, Share2, Save, X, Leaf, History, TrendingUp as TrendUp, TrendingDown, Minus, ChevronDown, ChevronUp, ChevronRight, Calendar, ShoppingCart, Calculator, ExternalLink, ShieldCheck, Droplets, CloudRain } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
 import { jsPDF } from 'jspdf';
@@ -13,6 +13,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/lib/supabase';
 import { useNotifications } from '@/contexts/NotificationContext';
 import { cropsApi } from '@/lib/api';
+import { getProtocol } from '@/lib/treatmentProtocols';
 
 export default function ScanCropPage() {
     const { t, i18n } = useTranslation();
@@ -29,7 +30,8 @@ export default function ScanCropPage() {
     const [selectedCropId, setSelectedCropId] = useState<string>('');
     const [scanHistory, setScanHistory] = useState<any[]>([]);
     const [loadingHistory, setLoadingHistory] = useState(false);
-    const [expandedScanId, setExpandedScanId] = useState<string | null>(null);
+    const [selectedHistoryScan, setSelectedHistoryScan] = useState<any>(null);
+    const [isModalOpen, setIsModalOpen] = useState(false);
     const fileInputRef = useRef<HTMLInputElement>(null);
     const videoRef = useRef<HTMLVideoElement>(null);
     const streamRef = useRef<MediaStream | null>(null);
@@ -60,7 +62,7 @@ export default function ScanCropPage() {
                 .select('*')
                 .eq('crop_id', selectedCropId)
                 .order('created_at', { ascending: false });
-            
+
             if (error) throw error;
             setScanHistory(data || []);
         } catch (err) {
@@ -77,10 +79,10 @@ export default function ScanCropPage() {
     // Calculate Health Trend
     const getHealthTrend = () => {
         if (scanHistory.length < 2) return { status: 'Stable', icon: Minus, color: 'text-gray-400' };
-        
+
         const recent = scanHistory[0].health_score || 0;
         const previous = scanHistory[1].health_score || 0;
-        
+
         if (recent > previous + 5) return { status: 'Improving', icon: TrendUp, color: 'text-agri-green' };
         if (recent < previous - 5) return { status: 'Declining', icon: TrendingDown, color: 'text-red-500' };
         return { status: 'Stable', icon: Minus, color: 'text-amber-500' };
@@ -181,15 +183,16 @@ export default function ScanCropPage() {
             // Backend returns: disease, confidence, severity, cause, treatment, prevention, fertilizer
             setResult({
                 disease: data.disease,
-                diseaseLocal: data.disease.startsWith('Unknown') ? data.disease : data.disease,
+                diseaseLocal: data.disease,
                 confidence: data.confidence,
                 severity: (data.severity as string).toLowerCase(),
                 cause: data.cause,
                 treatment: data.treatment,
                 prevention: data.prevention,
                 fertilizer: data.fertilizer,
+                rawClass: data.disease // Ensure the raw class is stored for protocol lookup
             });
-            
+
             // Trigger Notification
             addNotification(
                 t('scan.detected') + ": " + data.disease,
@@ -212,27 +215,41 @@ export default function ScanCropPage() {
             });
         } finally {
             setAnalyzing(false);
-            // Refresh history after analysis if we have a selected crop
-            if (selectedCropId) fetchHistory();
+
+            // AUTO-SAVE to database (as per requirement)
+            if (user && selectedCropId) {
+                try {
+                    await supabase.from('disease_scans').insert({
+                        user_id: user.id,
+                        crop_id: selectedCropId,
+                        disease_detected: result.disease,
+                        confidence: result.confidence,
+                        severity: result.severity,
+                        image_url: selectedImage || '',
+                        treatment: result.treatment || '',
+                        prevention: result.prevention || '',
+                        health_score: result.disease === 'Healthy' ? 95 : (95 - result.confidence * 0.5)
+                    });
+                    fetchHistory();
+                } catch (saveErr) {
+                    console.warn("Auto-save failed:", saveErr);
+                }
+            }
         }
     };
 
     const handleSave = async () => {
+        // Now mostly acts as PDF export since auto-save is active
         if (!result || result.disease === 'Error') return;
-
         setSaving(true);
         try {
-            // 1. Generate PDF Report FIRST (Prioritize User Value)
             const doc = new jsPDF();
             doc.setFontSize(22);
             doc.setTextColor(22, 163, 74);
             doc.text("Krushit Disease Diagnosis", 14, 20);
-
             doc.setFontSize(12);
             doc.setTextColor(100);
             doc.text(`Date: ${new Date().toLocaleDateString()}`, 14, 28);
-
-            // Diagnosis Info
             autoTable(doc, {
                 startY: 35,
                 body: [
@@ -243,16 +260,11 @@ export default function ScanCropPage() {
                 theme: 'striped',
                 headStyles: { fillColor: [22, 163, 74] }
             });
-
-            // Treatment & Prevention
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             const finalY = (doc as any).lastAutoTable.finalY + 10;
-
             if (result.treatment || result.prevention) {
                 doc.setFontSize(14);
                 doc.setTextColor(0);
                 doc.text("Treatment Plan", 14, finalY);
-
                 autoTable(doc, {
                     startY: finalY + 5,
                     head: [['Category', 'Details']],
@@ -266,49 +278,10 @@ export default function ScanCropPage() {
                     columnStyles: { 0: { cellWidth: 40 } }
                 });
             }
-
-            // Save PDF
-            const fileName = result.disease.startsWith('Unknown')
-                ? `Scan_Report_Index_${result.disease.split('_').pop()}.pdf`
-                : `Disease_Report_${result.disease.replace(/\s+/g, '_')}.pdf`;
-            doc.save(fileName);
-
-            // 2. Try Save to Supabase (Best Effort)
-            if (user) {
-                try {
-                    const { error } = await supabase.from('disease_scans').insert({
-                        user_id: user.id,
-                        crop_id: selectedCropId,
-                        disease_detected: result.disease,
-                        confidence: result.confidence,
-                        severity: result.severity,
-                        image_url: selectedImage || '',
-                        treatment: result.treatment || '',
-                        prevention: result.prevention || '',
-                        health_score: result.disease === 'Healthy' ? 95 : (95 - result.confidence * 0.5)
-                    });
-
-                    if (error) throw error;
-                    fetchHistory(); // Refresh timeline after save
-                    
-                    addNotification(
-                        t('common.reportSaved'),
-                        t('common.reportSavedDesc', { disease: result.diseaseLocal }),
-                        'crop'
-                    );
-
-                    alert(t('common.saveSuccess'));
-                } catch (dbError: any) { // eslint-disable-line @typescript-eslint/no-explicit-any
-                    console.warn('Cloud save failed (RLS likely):', dbError);
-                    alert(t('common.saveFail'));
-                }
-            } else {
-                alert(t('common.downloadSuccess'));
-            }
-
-        } catch (error: any) { // eslint-disable-line @typescript-eslint/no-explicit-any
+            doc.save(`Disease_Report_${result.disease.replace(/\s+/g, '_')}.pdf`);
+            addNotification(t('common.downloadSuccess'), "Your diagnosis report has been downloaded.", 'crop');
+        } catch (error: any) {
             console.error('PDF Generation error:', error);
-            alert('❌ Failed to generate report: ' + error.message);
         } finally {
             setSaving(false);
         }
@@ -572,18 +545,23 @@ export default function ScanCropPage() {
                                             disabled={saving}
                                             className="flex items-center justify-center gap-3 py-4 bg-gray-900 text-white font-black rounded-2xl hover:bg-black disabled:opacity-50 transition-all shadow-lg active:scale-95 text-sm"
                                         >
-                                            {saving ? (
-                                                <span className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></span>
-                                            ) : (
-                                                <Save size={20} />
-                                            )}
-                                            {saving ? 'Processing...' : 'Save Report'}
+                                            <FileText size={20} />
+                                            {saving ? 'Generating...' : 'Export Report'}
                                         </button>
                                         <button
-                                            onClick={handleShare}
-                                            className="flex items-center justify-center gap-3 py-4 bg-white border border-gray-200 text-gray-700 font-black rounded-2xl hover:bg-gray-50 transition-all shadow-sm active:scale-95 text-sm"
+                                            onClick={() => {
+                                                setSelectedHistoryScan({
+                                                    ...result,
+                                                    disease_detected: result.diseaseLocal || result.disease,
+                                                    image_url: selectedImage,
+                                                    crop_id: selectedCropId,
+                                                    created_at: new Date().toISOString()
+                                                });
+                                                setIsModalOpen(true);
+                                            }}
+                                            className="flex items-center justify-center gap-3 py-4 bg-agri-green text-white font-black rounded-2xl hover:bg-emerald-700 transition-all shadow-sm active:scale-95 text-sm"
                                         >
-                                            <Share2 size={20} /> Share Result
+                                            <Calculator size={20} /> Treatment Budget
                                         </button>
                                     </div>
                                 </motion.div>
@@ -613,7 +591,7 @@ export default function ScanCropPage() {
                             </div>
                             <h2 className="text-3xl font-black text-gray-900 tracking-tight">Crop Disease History</h2>
                         </div>
-                        
+
                         {/* Health Trend Indicator */}
                         <div className="flex items-center gap-4 bg-white p-4 rounded-3xl border border-gray-100 shadow-sm">
                             <div className={`w-12 h-12 rounded-2xl flex items-center justify-center ${trend.color.replace('text', 'bg')}/10 ${trend.color}`}>
@@ -642,7 +620,7 @@ export default function ScanCropPage() {
                                 </div>
                             ) : (
                                 scanHistory.map((scan, idx) => (
-                                    <motion.div 
+                                    <motion.div
                                         key={scan.id}
                                         initial={{ opacity: 0, x: -20 }}
                                         whileInView={{ opacity: 1, x: 0 }}
@@ -651,14 +629,15 @@ export default function ScanCropPage() {
                                         className="relative pl-0 md:pl-20 group"
                                     >
                                         {/* Timeline Dot */}
-                                        <div className={`absolute left-[20px] top-6 w-4 h-4 rounded-full border-4 border-white shadow-md z-10 hidden md:block ${
-                                            scan.severity === 'high' ? 'bg-red-500' : scan.severity === 'medium' ? 'bg-amber-500' : 'bg-agri-green'
-                                        }`} />
-
+                                        <div className={`absolute left-[20px] top-6 w-4 h-4 rounded-full border-4 border-white shadow-md z-10 hidden md:block ${scan.severity === 'high' ? 'bg-red-500' : scan.severity === 'medium' ? 'bg-amber-500' : 'bg-agri-green'
+                                            }`} />
                                         {/* Entry Card */}
                                         <div className="bg-white rounded-[2rem] border border-gray-100 shadow-sm overflow-hidden hover:shadow-xl hover:shadow-gray-100 transition-all">
-                                            <div 
-                                                onClick={() => setExpandedScanId(expandedScanId === scan.id ? null : scan.id)}
+                                            <div
+                                                onClick={() => {
+                                                    setSelectedHistoryScan(scan);
+                                                    setIsModalOpen(true);
+                                                }}
                                                 className="p-6 md:p-8 cursor-pointer flex flex-col md:flex-row md:items-center justify-between gap-6"
                                             >
                                                 <div className="flex items-center gap-6">
@@ -673,9 +652,8 @@ export default function ScanCropPage() {
                                                         <h4 className="text-xl font-black text-gray-900 mb-1">{scan.disease_detected}</h4>
                                                         <div className="flex items-center gap-4">
                                                             <span className="text-xs font-bold text-gray-400 flex items-center gap-1.5"><CheckCircle size={14} className="text-agri-green" /> Health: {scan.health_score || 85}%</span>
-                                                            <span className={`text-xs font-bold flex items-center gap-1.5 ${
-                                                                scan.severity === 'high' ? 'text-red-500' : scan.severity === 'medium' ? 'text-amber-500' : 'text-agri-green'
-                                                            }`}>
+                                                            <span className={`text-xs font-bold flex items-center gap-1.5 ${scan.severity === 'high' ? 'text-red-500' : scan.severity === 'medium' ? 'text-amber-500' : 'text-agri-green'
+                                                                }`}>
                                                                 <AlertTriangle size={14} /> {scan.severity.toUpperCase()} RIsk
                                                             </span>
                                                         </div>
@@ -686,57 +664,11 @@ export default function ScanCropPage() {
                                                         <p className="text-[10px] font-black text-gray-400 uppercase mb-1">Detection Confidence</p>
                                                         <p className="text-xl font-black text-gray-900">{scan.confidence}%</p>
                                                     </div>
-                                                    <div className={`p-3 rounded-xl ${expandedScanId === scan.id ? 'bg-gray-100 text-gray-900' : 'bg-gray-50 text-gray-400'}`}>
-                                                        {expandedScanId === scan.id ? <ChevronUp size={20} /> : <ChevronDown size={20} />}
+                                                    <div className="px-5 py-2.5 bg-gray-50 text-gray-700 font-bold rounded-xl flex items-center gap-2 group-hover:bg-agri-green group-hover:text-white transition-all">
+                                                        Planning <ChevronRight size={18} />
                                                     </div>
                                                 </div>
                                             </div>
-
-                                            <AnimatePresence>
-                                                {expandedScanId === scan.id && (
-                                                    <motion.div
-                                                        initial={{ height: 0, opacity: 0 }}
-                                                        animate={{ height: 'auto', opacity: 1 }}
-                                                        exit={{ height: 0, opacity: 0 }}
-                                                        className="overflow-hidden border-t border-gray-50"
-                                                    >
-                                                        <div className="p-8 bg-gray-50/30 grid grid-cols-1 md:grid-cols-2 gap-8">
-                                                            <div className="space-y-6">
-                                                                <div className="space-y-2">
-                                                                    <h5 className="text-xs font-black text-gray-400 uppercase tracking-widest flex items-center gap-2">
-                                                                        <FileText size={16} className="text-blue-500" /> Full AI Report
-                                                                    </h5>
-                                                                    <p className="text-sm text-gray-700 font-bold leading-relaxed">
-                                                                        Detailed analysis performed using krushit computer vision model. The visual symptoms match the profile of {scan.disease_detected}.
-                                                                    </p>
-                                                                </div>
-                                                                <div className="space-y-4">
-                                                                    <div className="p-4 bg-white rounded-2xl border border-gray-100 shadow-sm">
-                                                                        <p className="text-[10px] font-black text-agri-green uppercase mb-2">Treatment Recommendation</p>
-                                                                        <p className="text-sm text-gray-700 font-bold">{scan.treatment}</p>
-                                                                    </div>
-                                                                    <div className="p-4 bg-white rounded-2xl border border-gray-100 shadow-sm">
-                                                                        <p className="text-[10px] font-black text-purple-600 uppercase mb-2">Pesticide / Fungicide Suggested</p>
-                                                                        <p className="text-sm text-gray-700 font-bold">{scan.prevention || 'Consult local advisor for specific product brands.'}</p>
-                                                                    </div>
-                                                                </div>
-                                                            </div>
-                                                            <div className="bg-white rounded-3xl p-6 border border-gray-100 shadow-sm flex flex-col justify-center items-center text-center space-y-4">
-                                                                <div className="w-16 h-16 bg-blue-50 rounded-2xl flex items-center justify-center text-blue-600">
-                                                                    <Calendar size={32} />
-                                                                </div>
-                                                                <div>
-                                                                    <p className="text-lg font-black text-gray-900">Next Recommended Action</p>
-                                                                    <p className="text-sm text-gray-500 font-medium">Re-scan in 7 days to monitor recovery progress.</p>
-                                                                </div>
-                                                                <button className="w-full py-4 bg-agri-green text-white rounded-2xl font-black text-sm shadow-lg hover:shadow-agri-green/20 transition-all">
-                                                                    Schedule Task
-                                                                </button>
-                                                            </div>
-                                                        </div>
-                                                    </motion.div>
-                                                )}
-                                            </AnimatePresence>
                                         </div>
                                     </motion.div>
                                 ))
@@ -744,6 +676,216 @@ export default function ScanCropPage() {
                         </div>
                     </div>
                 </div>
+
+                {/* --- Predictive Budgeting & Treatment Modal --- */}
+                <AnimatePresence>
+                    {isModalOpen && selectedHistoryScan && (
+                        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+                            <motion.div
+                                initial={{ opacity: 0 }}
+                                animate={{ opacity: 1 }}
+                                exit={{ opacity: 0 }}
+                                onClick={() => setIsModalOpen(false)}
+                                className="absolute inset-0 bg-black/60 backdrop-blur-sm"
+                            />
+
+                            <motion.div
+                                initial={{ opacity: 0, scale: 0.9, y: 20 }}
+                                animate={{ opacity: 1, scale: 1, y: 0 }}
+                                exit={{ opacity: 0, scale: 0.9, y: 20 }}
+                                className="relative bg-white w-full max-w-4xl max-h-[90vh] overflow-y-auto rounded-[2.5rem] shadow-2xl p-6 md:p-10"
+                            >
+                                <button
+                                    onClick={() => setIsModalOpen(false)}
+                                    className="absolute top-6 right-6 p-2 text-gray-400 hover:text-gray-900 bg-gray-100 rounded-full transition-all"
+                                >
+                                    <X size={24} />
+                                </button>
+
+                                <div className="grid grid-cols-1 lg:grid-cols-12 gap-10">
+                                    {/* Modal Sidebar */}
+                                    <div className="lg:col-span-4 space-y-8">
+                                        <div className="rounded-3xl overflow-hidden border border-gray-100 shadow-inner h-64">
+                                            <img src={selectedHistoryScan.image_url} alt="Disease" className="w-full h-full object-cover" />
+                                        </div>
+                                        <div className="p-6 bg-gray-50 rounded-3xl space-y-4">
+                                            <h5 className="text-xs font-black text-gray-400 uppercase tracking-widest">Diagnosis Info</h5>
+                                            <div>
+                                                <p className="text-2xl font-black text-gray-900">{selectedHistoryScan.disease_detected}</p>
+                                                <p className="text-sm font-bold text-agri-green">{selectedHistoryScan.confidence}% Confidence</p>
+                                            </div>
+                                            <div className="flex items-center gap-2 mt-2">
+                                                <span className={`px-3 py-1 rounded-lg text-[10px] font-black uppercase ${selectedHistoryScan.severity === 'high' ? 'bg-red-100 text-red-600' : 'bg-amber-100 text-amber-600'
+                                                    }`}>
+                                                    {selectedHistoryScan.severity} Severity
+                                                </span>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    {/* Modal Content */}
+                                    <div className="lg:col-span-8 space-y-10">
+                                        <div>
+                                            <div className="flex items-center gap-2 text-agri-green font-black text-xs uppercase tracking-widest mb-2">
+                                                <Calculator size={16} /> Budgeting Module
+                                            </div>
+                                            <h3 className="text-3xl font-black text-gray-900">
+                                                {selectedHistoryScan.disease_detected.includes('Healthy')
+                                                    ? 'Crop Wellness Plan'
+                                                    : 'Predictive Treatment Budget'}
+                                            </h3>
+                                        </div>
+
+                                        {selectedHistoryScan.disease_detected.includes('Healthy') ? (
+                                            <div className="space-y-8">
+                                                <div className="bg-green-50 rounded-[2rem] p-8 border border-green-100 flex items-center gap-6">
+                                                    <div className="w-16 h-16 bg-white rounded-2xl flex items-center justify-center text-agri-green shadow-sm shrink-0">
+                                                        <ShieldCheck size={32} />
+                                                    </div>
+                                                    <div>
+                                                        <h4 className="text-xl font-black text-gray-900">No Disease Detected</h4>
+                                                        <p className="text-sm text-gray-500 font-bold">Your crop appears healthy. No chemical treatment is required at this stage.</p>
+                                                    </div>
+                                                </div>
+                                                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                                                    {[
+                                                        { title: 'Nutrient Monitoring', icon: Leaf, desc: 'Regularly check NPK levels to maintain growth.' },
+                                                        { title: 'Irrigation Balance', icon: Droplets, desc: 'Ensure consistent soil moisture based on stage.' },
+                                                        { title: 'Weather Watch', icon: CloudRain, desc: 'Monitor humidity to prevent future outbreaks.' }
+                                                    ].map((item, i) => (
+                                                        <div key={i} className="p-6 bg-white border border-gray-100 rounded-3xl shadow-sm space-y-3">
+                                                            <item.icon className="text-agri-green" size={24} />
+                                                            <h5 className="font-black text-gray-900">{item.title}</h5>
+                                                            <p className="text-xs text-gray-500 line-clamp-2">{item.desc}</p>
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            </div>
+                                        ) : (
+                                            <>
+                                                {/* Farm Input Panel */}
+                                                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                                                    <div className="p-4 bg-white border border-gray-100 rounded-2xl shadow-sm text-center">
+                                                        <p className="text-[10px] font-black text-gray-400 uppercase mb-1">Farm Area</p>
+                                                        <p className="text-lg font-black text-gray-900">{(crops.find(c => c.id === selectedCropId)?.area || 3.5)} Acres</p>
+                                                    </div>
+                                                    <div className="p-4 bg-white border border-gray-100 rounded-2xl shadow-sm text-center">
+                                                        <p className="text-[10px] font-black text-gray-400 uppercase mb-1">Crop Type</p>
+                                                        <p className="text-lg font-black text-gray-900">{selectedHistoryScan.disease_detected.split('___')[0] || 'Unknown'}</p>
+                                                    </div>
+                                                    <div className="p-4 bg-white border border-gray-100 rounded-2xl shadow-sm text-center">
+                                                        <p className="text-[10px] font-black text-gray-400 uppercase mb-1">Issue Class</p>
+                                                        <p className="text-lg font-black text-gray-900">{selectedHistoryScan.disease_detected.includes('Deficiency') ? 'Nutrient' : 'Pathogen'}</p>
+                                                    </div>
+                                                    <div className="p-4 bg-white border border-gray-100 rounded-2xl shadow-sm text-center">
+                                                        <p className="text-[10px] font-black text-gray-400 uppercase mb-1">Market Region</p>
+                                                        <p className="text-lg font-black text-gray-900">MH-West</p>
+                                                    </div>
+                                                </div>
+
+                                                {/* Dynamic Cost Calculation from Protocol */}
+                                                {(() => {
+                                                    const protocol = getProtocol(selectedHistoryScan.disease_detected);
+                                                    const area = crops.find(c => c.id === selectedCropId)?.area || 3.5;
+
+                                                    if (!protocol) return <div className="p-8 bg-red-50 text-red-600 rounded-3xl">Protocol data for this disease is currently being updated by our agronomists.</div>;
+
+                                                    const totalQty = (area * protocol.dosage).toFixed(2);
+                                                    const productCost = Math.round(area * protocol.dosage * protocol.pricePerUnit);
+                                                    const laborCost = 800;
+
+                                                    return (
+                                                        <>
+                                                            <div className="bg-gray-900 text-white rounded-[2rem] p-8 space-y-6">
+                                                                <div className="flex items-center justify-between">
+                                                                    <h4 className="text-xl font-black">Treatment Quantity & Cost</h4>
+                                                                    <span className="px-3 py-1 bg-white/20 rounded-full text-[10px] font-black uppercase">Fuzzy Mapping Active</span>
+                                                                </div>
+
+                                                                <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                                                                    <div className="space-y-4">
+                                                                        <div className="flex justify-between items-center text-sm">
+                                                                            <span className="text-gray-400">Recommended {selectedHistoryScan.disease_detected.includes('Deficiency') ? 'Fertilizer' : 'Chemical'}</span>
+                                                                            <span className="font-bold">{protocol.chemical}</span>
+                                                                        </div>
+                                                                        <div className="flex justify-between items-center text-sm">
+                                                                            <span className="text-gray-400">Dosage per Acre</span>
+                                                                            <span className="font-bold">{protocol.dosage} {protocol.unit}</span>
+                                                                        </div>
+                                                                        <div className="flex justify-between items-center text-lg font-bold pt-4 border-t border-white/10">
+                                                                            <span>Total Quantity Required</span>
+                                                                            <span className="text-agri-green">{totalQty} {protocol.unit}</span>
+                                                                        </div>
+                                                                    </div>
+                                                                    <div className="space-y-4">
+                                                                        <div className="flex justify-between items-center text-sm">
+                                                                            <span className="text-gray-400">Market Price Appx</span>
+                                                                            <span className="font-bold">₹{protocol.pricePerUnit} / {protocol.unit}</span>
+                                                                        </div>
+                                                                        <div className="flex justify-between items-center text-sm">
+                                                                            <span className="text-gray-400">Application Method</span>
+                                                                            <span className="font-bold">{protocol.method}</span>
+                                                                        </div>
+                                                                        <div className="flex justify-between items-center text-3xl font-black pt-4 border-t border-white/10">
+                                                                            <span>Total Budget</span>
+                                                                            <span className="text-agri-green">₹{productCost + laborCost}</span>
+                                                                        </div>
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+
+                                                            {/* Marketplace Links */}
+                                                            <div className="space-y-4">
+                                                                <h4 className="text-xs font-black text-gray-400 uppercase tracking-widest flex items-center gap-2">
+                                                                    <ShoppingCart size={16} /> Purchase {protocol.chemical.split(' ')[0]} Now
+                                                                </h4>
+                                                                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                                                    <a href={protocol.marketplaceLinks.agrostar} target="_blank" className="flex items-center justify-between p-4 bg-white border border-gray-100 rounded-2xl hover:border-agri-green hover:shadow-lg transition-all">
+                                                                        <span className="font-black text-gray-900">AgroStar</span>
+                                                                        <ExternalLink size={16} className="text-agri-green" />
+                                                                    </a>
+                                                                    <a href={protocol.marketplaceLinks.bighaat} target="_blank" className="flex items-center justify-between p-4 bg-white border border-gray-100 rounded-2xl hover:border-agri-green hover:shadow-lg transition-all">
+                                                                        <span className="font-black text-gray-900">BigHaat</span>
+                                                                        <ExternalLink size={16} className="text-agri-green" />
+                                                                    </a>
+                                                                    <a href={protocol.marketplaceLinks.indiamart} target="_blank" className="flex items-center justify-between p-4 bg-white border border-gray-100 rounded-2xl hover:border-agri-green hover:shadow-lg transition-all">
+                                                                        <span className="font-black text-gray-900">IndiaMART</span>
+                                                                        <ExternalLink size={16} className="text-agri-green" />
+                                                                    </a>
+                                                                </div>
+                                                            </div>
+
+                                                            {/* Organic Options */}
+                                                            <div className="p-8 bg-emerald-50 rounded-[2rem] border border-emerald-100">
+                                                                <h4 className="text-xs font-black text-agri-green uppercase tracking-widest flex items-center gap-2 mb-6">
+                                                                    <ShieldCheck size={16} /> Organic Treatment Alternatives
+                                                                </h4>
+                                                                <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                                                                    <div className="flex gap-4">
+                                                                        <div className="w-12 h-12 bg-white rounded-xl flex items-center justify-center text-agri-green shadow-sm shrink-0">
+                                                                            <Leaf size={24} />
+                                                                        </div>
+                                                                        <div>
+                                                                            <p className="font-black text-gray-900">{protocol.organicAlternative}</p>
+                                                                            <p className="text-xs text-gray-500 font-bold">Required: {(area * protocol.organicDosage).toFixed(1)} {protocol.organicUnit} • Est. Cost: ₹{Math.round(area * protocol.organicPrice)}</p>
+                                                                        </div>
+                                                                    </div>
+                                                                    <div className="flex items-center justify-center bg-white/50 rounded-2xl p-4 border border-white">
+                                                                        <p className="text-[10px] font-bold text-gray-400 italic text-center">Using organic alternatives can improve long-term soil health by up to 15%.</p>
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+                                                        </>
+                                                    );
+                                                })()}
+                                            </>
+                                        )}
+                                    </div>
+                                </div>
+                            </motion.div>
+                        </div>
+                    )}
+                </AnimatePresence>
             </div>
         </FarmerDashboardLayout>
     );

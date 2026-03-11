@@ -10,7 +10,7 @@ interface AuthContextType {
     profile: any | null;
     session: Session | null;
     loading: boolean;
-    signIn: (email: string, password: string) => Promise<{ error: any }>;
+    signIn: (email: string, password: string) => Promise<{ user?: User | null, profile?: any, error: any }>;
     signUp: (email: string, password: string, metadata: any) => Promise<{ error: any }>;
     signOut: (global?: boolean) => Promise<void>;
     updateProfile: (data: any) => Promise<{ error: any }>;
@@ -130,18 +130,21 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
             // Immediate state update for perceived performance
             setUser(mockUser);
-            setProfile({
+            const mockProfile = {
                 id: mockUser.id,
                 email: mockUser.email,
                 full_name: name,
                 phone: '+91 99999 99999',
                 region: 'Maharashtra, India',
                 language: 'en',
+                is_admin: normalizedEmail.includes('admin'),
+                role: (normalizedEmail.includes('admin') ? 'admin' : 'farmer') as 'admin' | 'farmer',
                 notifications: { disease: true, weather: true, irrigation: true }
-            });
+            };
+            setProfile(mockProfile);
             setSession({ user: mockUser, access_token: 'demo-token-' + Date.now() } as unknown as Session);
             console.log("Mock Login Success for:", normalizedEmail);
-            return { error: null };
+            return { user: mockUser, profile: mockProfile, error: null };
         }
 
         try {
@@ -152,16 +155,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             
             if (error) {
                 console.error("Supabase Login Error:", error.message, error.status);
-                return { error };
+                return { user: null, profile: null, error };
             }
 
             console.log("Supabase Login Success for:", data.user?.email);
-            return { error: null };
+            // Re-fetch to wait for profile
+            const { data: profile } = await supabase.from('users').select('*').eq('id', data.user.id).single();
+            return { user: data.user, profile, error: null };
         } catch (err: any) {
             console.error("Authentication Service Exception:", err);
-            return { error: { message: 'Authentication Service Unavailable or CORS block' } };
+            return { user: null, profile: null, error: { message: 'Authentication Service Unavailable or CORS block' } };
         }
-    }, []);
+    }, [fetchProfile]);
 
     const signUp = useCallback(async (email: string, password: string, metadata: any) => {
         try {
@@ -184,7 +189,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                     id: data.user.id,
                     email: data.user.email,
                     full_name: metadata.full_name || 'New Farmer',
-                    language: metadata.language || 'en'
+                    language: metadata.language || 'en',
+                    role: 'farmer'
                 });
                 if (profileError) {
                     console.warn("Manual profile insert failed (might already exist or RLS block):", profileError.message);

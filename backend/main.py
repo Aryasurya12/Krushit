@@ -314,7 +314,27 @@ def get_disease_info(class_label: str, severity: str = "Medium") -> dict:
         if key.replace("___", " ").replace("_", " ").lower() == normalised.lower():
             return val
 
-    # 4. Ultimate fallback
+    # 4. Smart fallback: Extract from class label if possible
+    if '___' in class_label:
+        parts = class_label.split('___')
+        crop_name = parts[0].replace('_', ' ')
+        issue_name = parts[1].replace('_', ' ')
+    elif '_' in class_label:
+        parts = class_label.split('_')
+        crop_name = parts[0]
+        issue_name = " ".join(parts[1:])
+    else:
+        crop_name = "Crop"
+        issue_name = class_label
+
+    return {
+        "cause":      f"Automated analysis indicates {issue_name} potentially affecting your crop.",
+        "treatment":  f"Strategic {('fertilizer' if 'Deficiency' in issue_name else 'fungicide')} application is recommended after verification of {issue_name}.",
+        "prevention": "Sanitize tools between fields and improve crop spacing to reduce future stress.",
+        "fertilizer": f"Maintain balanced soil nutrition with targeted micro-nutrients."
+    }
+
+    # 5. Ultimate fallback
     return {
         "cause":      "Leaf pattern analysis detected an anomaly. Consult a local agricultural expert.",
         "treatment":  "Consult with a local agricultural expert for correct diagnosis and treatment.",
@@ -685,8 +705,13 @@ async def predict_disease(file: UploadFile = File(...), language: str = "en"):
         if len(image_bytes) == 0:
             raise ValueError("Empty image file received.")
 
-        # 5. Preprocess — model input is (None, 224, 224, 3)
-        processed_image = preprocess_image(image_bytes, target_size=(224, 224))
+        # 6. Preprocess image
+        # Dynamically get input size from model
+        input_shape = ml_model.input_shape
+        target_size = (input_shape[1], input_shape[2]) if len(input_shape) >= 3 else (224, 224)
+        
+        logger.info(f"🚀 Predicting with target size: {target_size}")
+        processed_image = preprocess_image(image_bytes, target_size=target_size)
         logger.info(f"🔧 Preprocessed shape: {processed_image.shape}")
 
         # 6. Predict
@@ -694,20 +719,31 @@ async def predict_disease(file: UploadFile = File(...), language: str = "en"):
         logger.info(f"📊 Raw predictions shape: {predictions.shape}, values: {predictions[0][:5]}...")
 
         # 7. Extract result
-        class_index = int(np.argmax(predictions[0]))
-        confidence  = float(np.max(predictions[0])) * 100
+        probs = predictions[0]
+        class_index = int(np.argmax(probs))
+        confidence  = float(np.max(probs)) * 100
         
-        # Safety check: ensure class_index exists in class_names
+        # 8. Log Top 5 for debugging
+        top_5_indices = np.argsort(probs)[-5:][::-1]
+        top_5_diagnostics = []
+        for idx in top_5_indices:
+            name = class_names[idx] if idx < len(class_names) else f"Unknown_{idx}"
+            c = float(probs[idx]) * 100
+            top_5_diagnostics.append(f"{name} ({c:.1f}%)")
+        
+        logger.info(f"🔍 Top 5 Predictions: {', '.join(top_5_diagnostics)}")
+
+        # 9. Map to class name
         if class_index < len(class_names):
             class_label = class_names[class_index]
         else:
             class_label = f"Unknown_Disease_Index_{class_index}"
-            logger.warning(f"⚠️ Model predicted index {class_index}, but class_names only has {len(class_names)} items.")
 
-        # 8. Severity
-        if confidence >= 80:
+        # 10. Metadata / Severity
+        display_name = class_label.replace("___", " ").replace("_", " ")
+        if confidence >= 85:
             severity = "High"
-        elif confidence >= 50:
+        elif confidence >= 60:
             severity = "Medium"
         else:
             severity = "Low"

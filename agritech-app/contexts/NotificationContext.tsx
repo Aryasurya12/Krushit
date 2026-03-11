@@ -74,7 +74,7 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
 
     useEffect(() => {
         fetchNotifications();
-        
+
         // Refresh every 30 seconds
         const interval = setInterval(fetchNotifications, 30000);
         return () => clearInterval(interval);
@@ -184,7 +184,7 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
             setIsPanelOpen
         }}>
             {children}
-            
+
             {/* Toast Notification Popup */}
             <AnimatePresence>
                 {toast && (
@@ -195,18 +195,17 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
                         className="fixed top-20 right-4 z-[100] w-full max-w-sm"
                     >
                         <div className="bg-white/95 backdrop-blur-md rounded-2xl shadow-xl border border-gray-100 p-4 flex items-start gap-4 ring-1 ring-black/5">
-                            <div className={`p-2 rounded-xl shrink-0 ${
-                                toast.type === 'crop' || toast.type === 'ai' ? 'bg-red-50 text-red-500' :
-                                toast.type === 'weather' ? 'bg-blue-50 text-blue-500' :
-                                toast.type === 'water' || toast.type === 'sensor' ? 'bg-emerald-50 text-emerald-500' :
-                                'bg-agri-green/10 text-agri-green'
-                            }`}>
+                            <div className={`p-2 rounded-xl shrink-0 ${toast.type === 'crop' || toast.type === 'ai' ? 'bg-red-50 text-red-500' :
+                                    toast.type === 'weather' ? 'bg-blue-50 text-blue-500' :
+                                        toast.type === 'water' || toast.type === 'sensor' ? 'bg-emerald-50 text-emerald-500' :
+                                            'bg-agri-green/10 text-agri-green'
+                                }`}>
                                 {toast.type === 'crop' || toast.type === 'ai' ? <AlertTriangle size={20} /> :
-                                 toast.type === 'weather' ? <CloudRain size={20} /> :
-                                 toast.type === 'water' ? <Droplets size={20} /> :
-                                 toast.type === 'sensor' ? <Zap size={20} /> :
-                                 toast.type === 'community' ? <Users size={20} /> :
-                                 <Info size={20} />}
+                                    toast.type === 'weather' ? <CloudRain size={20} /> :
+                                        toast.type === 'water' ? <Droplets size={20} /> :
+                                            toast.type === 'sensor' ? <Zap size={20} /> :
+                                                toast.type === 'community' ? <Users size={20} /> :
+                                                    <Info size={20} />}
                             </div>
                             <div className="flex-1 min-w-0 pr-4">
                                 <h4 className="text-sm font-bold text-gray-900 mb-0.5">{toast.title}</h4>
