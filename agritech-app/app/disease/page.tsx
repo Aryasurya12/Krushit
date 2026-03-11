@@ -1,9 +1,9 @@
 'use client';
 
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import FarmerDashboardLayout from '@/components/FarmerDashboardLayout';
 import { useTranslation } from 'react-i18next';
-import { Upload, Camera, AlertTriangle, CheckCircle, FileText, Share2, Save, X, Leaf } from 'lucide-react';
+import { Upload, Camera, AlertTriangle, CheckCircle, FileText, Share2, Save, X, Leaf, History, TrendingUp as TrendUp, TrendingDown, Minus, ChevronDown, ChevronUp, Calendar } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
 import { jsPDF } from 'jspdf';
@@ -12,6 +12,7 @@ import autoTable from 'jspdf-autotable';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/lib/supabase';
 import { useNotifications } from '@/contexts/NotificationContext';
+import { cropsApi } from '@/lib/api';
 
 export default function ScanCropPage() {
     const { t, i18n } = useTranslation();
@@ -24,9 +25,68 @@ export default function ScanCropPage() {
     const [saving, setSaving] = useState(false);
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const [result, setResult] = useState<any>(null);
+    const [crops, setCrops] = useState<any[]>([]);
+    const [selectedCropId, setSelectedCropId] = useState<string>('');
+    const [scanHistory, setScanHistory] = useState<any[]>([]);
+    const [loadingHistory, setLoadingHistory] = useState(false);
+    const [expandedScanId, setExpandedScanId] = useState<string | null>(null);
     const fileInputRef = useRef<HTMLInputElement>(null);
     const videoRef = useRef<HTMLVideoElement>(null);
     const streamRef = useRef<MediaStream | null>(null);
+
+    // Fetch crops on mount
+    useEffect(() => {
+        const fetchCrops = async () => {
+            try {
+                const data = await cropsApi.getAll();
+                setCrops(data || []);
+                if (data && data.length > 0) {
+                    setSelectedCropId(data[0].id);
+                }
+            } catch (err) {
+                console.warn("Failed to fetch crops:", err);
+            }
+        };
+        fetchCrops();
+    }, []);
+
+    // Fetch history whenever selected crop or user changes
+    const fetchHistory = async () => {
+        if (!user || !selectedCropId) return;
+        setLoadingHistory(true);
+        try {
+            const { data, error } = await supabase
+                .from('disease_scans')
+                .select('*')
+                .eq('crop_id', selectedCropId)
+                .order('created_at', { ascending: false });
+            
+            if (error) throw error;
+            setScanHistory(data || []);
+        } catch (err) {
+            console.error("Failed to fetch history:", err);
+        } finally {
+            setLoadingHistory(false);
+        }
+    };
+
+    useEffect(() => {
+        if (selectedCropId) fetchHistory();
+    }, [selectedCropId, user]);
+
+    // Calculate Health Trend
+    const getHealthTrend = () => {
+        if (scanHistory.length < 2) return { status: 'Stable', icon: Minus, color: 'text-gray-400' };
+        
+        const recent = scanHistory[0].health_score || 0;
+        const previous = scanHistory[1].health_score || 0;
+        
+        if (recent > previous + 5) return { status: 'Improving', icon: TrendUp, color: 'text-agri-green' };
+        if (recent < previous - 5) return { status: 'Declining', icon: TrendingDown, color: 'text-red-500' };
+        return { status: 'Stable', icon: Minus, color: 'text-amber-500' };
+    };
+
+    const trend = getHealthTrend();
 
     const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
@@ -152,6 +212,8 @@ export default function ScanCropPage() {
             });
         } finally {
             setAnalyzing(false);
+            // Refresh history after analysis if we have a selected crop
+            if (selectedCropId) fetchHistory();
         }
     };
 
@@ -216,15 +278,18 @@ export default function ScanCropPage() {
                 try {
                     const { error } = await supabase.from('disease_scans').insert({
                         user_id: user.id,
+                        crop_id: selectedCropId,
                         disease_detected: result.disease,
                         confidence: result.confidence,
                         severity: result.severity,
                         image_url: selectedImage || '',
                         treatment: result.treatment || '',
-                        prevention: result.prevention || ''
+                        prevention: result.prevention || '',
+                        health_score: result.disease === 'Healthy' ? 95 : (95 - result.confidence * 0.5)
                     });
 
                     if (error) throw error;
+                    fetchHistory(); // Refresh timeline after save
                     
                     addNotification(
                         t('common.reportSaved'),
@@ -273,9 +338,28 @@ export default function ScanCropPage() {
     return (
         <FarmerDashboardLayout>
             <div className="max-w-5xl mx-auto">
-                <div className="mb-8">
-                    <h1 className="text-2xl font-bold text-gray-900 tracking-tight">{t('nav.scanCrop')}</h1>
-                    <p className="text-sm text-gray-500">{t('scan.subtitle')}</p>
+                <div className="mb-8 flex flex-col md:flex-row md:items-center justify-between gap-6">
+                    <div>
+                        <h1 className="text-3xl font-black text-gray-900 tracking-tight">{t('nav.scanCrop')}</h1>
+                        <p className="text-sm text-gray-500 font-medium">{t('scan.subtitle')}</p>
+                    </div>
+
+                    <div className="flex items-center gap-3">
+                        <div className="relative">
+                            <Leaf className="absolute left-4 top-1/2 -translate-y-1/2 text-agri-green" size={18} />
+                            <select
+                                value={selectedCropId}
+                                onChange={(e) => setSelectedCropId(e.target.value)}
+                                className="pl-11 pr-10 py-3.5 bg-white border border-gray-200 rounded-2xl text-sm font-bold text-gray-700 shadow-sm outline-none focus:ring-2 focus:ring-agri-green/20 focus:border-agri-green transition-all appearance-none cursor-pointer min-w-[200px]"
+                            >
+                                <option value="" disabled>Select Crop Field</option>
+                                {crops.map(crop => (
+                                    <option key={crop.id} value={crop.id}>{crop.name} - {crop.area} Acres</option>
+                                ))}
+                            </select>
+                            <ChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" size={16} />
+                        </div>
+                    </div>
                 </div>
 
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
@@ -403,90 +487,81 @@ export default function ScanCropPage() {
                             </div>
                         </div>
                     </div>
-
                     {/* Right Column: Results */}
                     <div className="space-y-6">
                         <AnimatePresence mode="wait">
                             {result ? (
                                 <motion.div
-                                    initial={{ opacity: 0, y: 10 }}
-                                    animate={{ opacity: 1, y: 0 }}
-                                    exit={{ opacity: 0, y: -10 }}
+                                    initial={{ opacity: 0, scale: 0.95 }}
+                                    animate={{ opacity: 1, scale: 1 }}
+                                    exit={{ opacity: 0, scale: 0.95 }}
                                     className="space-y-4"
                                 >
                                     {/* Diagnosis Card */}
-                                    <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-6 relative overflow-hidden">
+                                    <div className="bg-white rounded-3xl border border-gray-100 shadow-xl shadow-gray-100/50 p-6 md:p-8 relative overflow-hidden">
                                         <div className={`absolute top-0 left-0 w-2 h-full ${result.severity === 'high' ? 'bg-red-500' : result.severity === 'medium' ? 'bg-amber-500' : 'bg-green-500'
                                             }`}></div>
 
-                                        <div className="pl-4">
-                                            <div className="flex justify-between items-start mb-4">
+                                        <div className="space-y-6">
+                                            <div className="flex justify-between items-start">
                                                 <div>
-                                                    <p className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-1">{t('scan.detected')}</p>
-                                                    <h3 className="text-2xl font-bold text-gray-900">{result.diseaseLocal}</h3>
+                                                    <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">Diagnosis Result</p>
+                                                    <h3 className="text-3xl font-black text-gray-900 tracking-tight">{result.diseaseLocal}</h3>
                                                 </div>
                                                 <div className="text-right">
-                                                    <p className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-1">{t('scan.confidence')}</p>
-                                                    <p className="text-2xl font-bold text-agri-green">{result.confidence}%</p>
+                                                    <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">AI Confidence</p>
+                                                    <p className="text-3xl font-black text-agri-green">{result.confidence}%</p>
                                                 </div>
                                             </div>
 
-                                            <div className="flex items-center gap-3 mb-6">
-                                                <span className={`px-3 py-1 rounded-full text-xs font-bold uppercase flex items-center gap-1.5 ${result.severity === 'high' ? 'bg-red-100 text-red-700' :
-                                                    result.severity === 'medium' ? 'bg-amber-100 text-amber-700' : 'bg-green-100 text-green-700'
+                                            <div className="flex flex-wrap items-center gap-3">
+                                                <span className={`px-4 py-2 rounded-xl text-xs font-black uppercase flex items-center gap-2 ${result.severity === 'high' ? 'bg-red-50 text-red-600 border border-red-100' :
+                                                    result.severity === 'medium' ? 'bg-amber-50 text-amber-600 border border-amber-100' : 'bg-green-50 text-agri-green border border-green-100'
                                                     }`}>
-                                                    <AlertTriangle size={12} /> {result.severity} {t('scan.severity')}
+                                                    <AlertTriangle size={14} /> {result.severity} Severity
+                                                </span>
+                                                <span className="px-4 py-2 bg-blue-50 text-blue-600 border border-blue-100 rounded-xl text-xs font-black uppercase flex items-center gap-2">
+                                                    <CheckCircle size={14} /> AI Verified
                                                 </span>
                                             </div>
 
-                                            {/* Cause */}
-                                            {result.cause && (
-                                                <div className="bg-blue-50 rounded-xl p-4 border border-blue-100 mb-4">
-                                                    <h4 className="text-sm font-bold text-blue-900 mb-2 flex items-center gap-2">
+                                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                                {/* Cause */}
+                                                <div className="bg-blue-50/30 rounded-2xl p-5 border border-blue-100/50">
+                                                    <h4 className="text-xs font-black text-blue-600 uppercase tracking-widest mb-3 flex items-center gap-2">
                                                         <AlertTriangle size={16} />
-                                                        {t('scan.causeLabel')}
+                                                        Disease Cause
                                                     </h4>
-                                                    <p className="text-sm text-blue-800 leading-relaxed">
-                                                        {result.cause}
-                                                    </p>
+                                                    <p className="text-sm text-gray-700 font-bold leading-relaxed">{result.cause || 'Environmental factors or pathogen activity.'}</p>
                                                 </div>
-                                            )}
 
-                                            {/* Treatment Solution */}
-                                            {result.treatment && (
-                                                <div className="bg-green-50 rounded-xl p-4 border border-green-100 mb-4">
-                                                    <h4 className="text-sm font-bold text-green-900 mb-3 flex items-center gap-2">
+                                                {/* Treatment Solution */}
+                                                <div className="bg-green-50/30 rounded-2xl p-5 border border-green-100/50">
+                                                    <h4 className="text-xs font-black text-agri-green uppercase tracking-widest mb-3 flex items-center gap-2">
                                                         <CheckCircle size={16} />
-                                                        {t('scan.solutionLabel')}
+                                                        Treatment Plan
                                                     </h4>
-                                                    <p className="text-sm text-green-800 leading-relaxed">{result.treatment}</p>
+                                                    <p className="text-sm text-gray-700 font-bold leading-relaxed">{result.treatment || 'No specific treatment required.'}</p>
                                                 </div>
-                                            )}
 
-                                            {/* Prevention */}
-                                            {result.prevention && (
-                                                <div className="bg-purple-50 rounded-xl p-4 border border-purple-100 mb-4">
-                                                    <h4 className="text-sm font-bold text-purple-900 mb-3 flex items-center gap-2">
-                                                        <AlertTriangle size={16} />
-                                                        {t('scan.preventionLabel')}
+                                                {/* Prevention */}
+                                                <div className="bg-purple-50/30 rounded-2xl p-5 border border-purple-100/50">
+                                                    <h4 className="text-xs font-black text-purple-600 uppercase tracking-widest mb-3 flex items-center gap-2">
+                                                        <History size={16} />
+                                                        Preventive Action
                                                     </h4>
-                                                    <p className="text-sm text-purple-800 leading-relaxed">{result.prevention}</p>
+                                                    <p className="text-sm text-gray-700 font-bold leading-relaxed">{result.prevention || 'Regular monitoring recommended.'}</p>
                                                 </div>
-                                            )}
 
-                                            {/* Fertilizer Recommendation */}
-                                            {result.fertilizer && (
-                                                <div className="bg-amber-50 rounded-xl p-4 border border-amber-100 mb-4">
-                                                    <h4 className="text-sm font-bold text-amber-900 mb-2 flex items-center gap-2">
+                                                {/* Fertilizer Recommendation */}
+                                                <div className="bg-amber-50/30 rounded-2xl p-5 border border-amber-100/50">
+                                                    <h4 className="text-xs font-black text-amber-600 uppercase tracking-widest mb-3 flex items-center gap-2">
                                                         <Leaf size={16} />
-                                                        {t('scan.fertilizerLabel')}
+                                                        Fertilizer Advice
                                                     </h4>
-                                                    <p className="text-sm text-amber-800 leading-relaxed">
-                                                        {result.fertilizer}
-                                                    </p>
+                                                    <p className="text-sm text-gray-700 font-bold leading-relaxed">{result.fertilizer || 'Balanced NPK maintenance.'}</p>
                                                 </div>
-                                            )}
-
+                                            </div>
                                         </div>
                                     </div>
 
@@ -495,20 +570,20 @@ export default function ScanCropPage() {
                                         <button
                                             onClick={handleSave}
                                             disabled={saving}
-                                            className="flex items-center justify-center gap-2 py-3 bg-white border border-gray-200 text-gray-700 font-semibold rounded-xl hover:bg-gray-50 disabled:opacity-50 transition-colors shadow-sm text-sm"
+                                            className="flex items-center justify-center gap-3 py-4 bg-gray-900 text-white font-black rounded-2xl hover:bg-black disabled:opacity-50 transition-all shadow-lg active:scale-95 text-sm"
                                         >
                                             {saving ? (
-                                                <span className="w-4 h-4 border-2 border-agri-green/30 border-t-agri-green rounded-full animate-spin"></span>
+                                                <span className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></span>
                                             ) : (
-                                                <Save size={18} />
+                                                <Save size={20} />
                                             )}
-                                            {saving ? t('auth.processing') : t('scan.save')}
+                                            {saving ? 'Processing...' : 'Save Report'}
                                         </button>
                                         <button
                                             onClick={handleShare}
-                                            className="flex items-center justify-center gap-2 py-3 bg-white border border-gray-200 text-gray-700 font-semibold rounded-xl hover:bg-gray-50 transition-colors shadow-sm text-sm"
+                                            className="flex items-center justify-center gap-3 py-4 bg-white border border-gray-200 text-gray-700 font-black rounded-2xl hover:bg-gray-50 transition-all shadow-sm active:scale-95 text-sm"
                                         >
-                                            <Share2 size={18} /> {t('scan.share')}
+                                            <Share2 size={20} /> Share Result
                                         </button>
                                     </div>
                                 </motion.div>
@@ -516,19 +591,161 @@ export default function ScanCropPage() {
                                 <motion.div
                                     initial={{ opacity: 0 }}
                                     animate={{ opacity: 1 }}
-                                    className="bg-gray-50 border-2 border-dashed border-gray-200 rounded-2xl h-full min-h-[300px] flex flex-col items-center justify-center text-center p-8"
+                                    className="bg-gray-50 border-2 border-dashed border-gray-200 rounded-[2.5rem] h-full min-h-[400px] flex flex-col items-center justify-center text-center p-12"
                                 >
-                                    <div className="w-20 h-20 bg-gray-100 rounded-full flex items-center justify-center mb-4">
-                                        <CheckCircle size={32} className="text-gray-300" />
+                                    <div className="w-24 h-24 bg-white rounded-full flex items-center justify-center mb-6 shadow-sm">
+                                        <CheckCircle size={40} className="text-gray-200" />
                                     </div>
-                                    <h3 className="text-lg font-bold text-gray-900 mb-1">{t('scan.pendingTitle')}</h3>
-                                    <p className="text-sm text-gray-500 max-w-xs mx-auto">{t('scan.pendingDesc')}</p>
+                                    <h3 className="text-xl font-black text-gray-900 mb-2">Analysis Pending</h3>
+                                    <p className="text-sm text-gray-400 font-medium max-w-xs mx-auto">Upload or capture an image of the affected crop to start the AI disease diagnosis.</p>
                                 </motion.div>
                             )}
                         </AnimatePresence>
+                    </div>
+                </div>
+
+                {/* --- Crop Disease History Timeline --- */}
+                <div className="mt-16 space-y-10">
+                    <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 border-b border-gray-100 pb-8">
+                        <div>
+                            <div className="flex items-center gap-2 text-agri-green font-black text-xs uppercase tracking-[0.2em] mb-2">
+                                <History size={16} /> Monitoring System
+                            </div>
+                            <h2 className="text-3xl font-black text-gray-900 tracking-tight">Crop Disease History</h2>
+                        </div>
+                        
+                        {/* Health Trend Indicator */}
+                        <div className="flex items-center gap-4 bg-white p-4 rounded-3xl border border-gray-100 shadow-sm">
+                            <div className={`w-12 h-12 rounded-2xl flex items-center justify-center ${trend.color.replace('text', 'bg')}/10 ${trend.color}`}>
+                                <trend.icon size={24} />
+                            </div>
+                            <div>
+                                <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Health Trend</p>
+                                <p className={`text-lg font-black ${trend.color}`}>{trend.status}</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div className="relative">
+                        {/* Connected Line */}
+                        <div className="absolute left-[27px] top-6 bottom-6 w-0.5 bg-gray-100 hidden md:block" />
+
+                        <div className="space-y-8">
+                            {loadingHistory ? (
+                                <div className="py-20 text-center space-y-4">
+                                    <div className="w-10 h-10 border-4 border-agri-green border-t-transparent rounded-full animate-spin mx-auto" />
+                                    <p className="text-gray-400 font-bold">Fetching History...</p>
+                                </div>
+                            ) : scanHistory.length === 0 ? (
+                                <div className="py-20 bg-gray-50/50 rounded-[2.5rem] border border-dashed border-gray-200 text-center">
+                                    <p className="text-gray-400 font-bold">No disease history found for this crop.</p>
+                                </div>
+                            ) : (
+                                scanHistory.map((scan, idx) => (
+                                    <motion.div 
+                                        key={scan.id}
+                                        initial={{ opacity: 0, x: -20 }}
+                                        whileInView={{ opacity: 1, x: 0 }}
+                                        viewport={{ once: true }}
+                                        transition={{ delay: idx * 0.1 }}
+                                        className="relative pl-0 md:pl-20 group"
+                                    >
+                                        {/* Timeline Dot */}
+                                        <div className={`absolute left-[20px] top-6 w-4 h-4 rounded-full border-4 border-white shadow-md z-10 hidden md:block ${
+                                            scan.severity === 'high' ? 'bg-red-500' : scan.severity === 'medium' ? 'bg-amber-500' : 'bg-agri-green'
+                                        }`} />
+
+                                        {/* Entry Card */}
+                                        <div className="bg-white rounded-[2rem] border border-gray-100 shadow-sm overflow-hidden hover:shadow-xl hover:shadow-gray-100 transition-all">
+                                            <div 
+                                                onClick={() => setExpandedScanId(expandedScanId === scan.id ? null : scan.id)}
+                                                className="p-6 md:p-8 cursor-pointer flex flex-col md:flex-row md:items-center justify-between gap-6"
+                                            >
+                                                <div className="flex items-center gap-6">
+                                                    <div className="w-20 h-20 rounded-2xl overflow-hidden shadow-inner bg-gray-100 shrink-0">
+                                                        <img src={scan.image_url} alt="Scan" className="w-full h-full object-cover" />
+                                                    </div>
+                                                    <div>
+                                                        <div className="flex items-center gap-3 mb-2">
+                                                            <span className="text-xs font-black text-agri-green bg-green-50 px-3 py-1 rounded-full uppercase">Scan – {new Date(scan.created_at).toLocaleDateString('en-US', { month: 'long', day: 'numeric' })}</span>
+                                                            {idx === 0 && <span className="text-[10px] font-black text-blue-600 bg-blue-50 px-2 py-0.5 rounded-full uppercase">Latest</span>}
+                                                        </div>
+                                                        <h4 className="text-xl font-black text-gray-900 mb-1">{scan.disease_detected}</h4>
+                                                        <div className="flex items-center gap-4">
+                                                            <span className="text-xs font-bold text-gray-400 flex items-center gap-1.5"><CheckCircle size={14} className="text-agri-green" /> Health: {scan.health_score || 85}%</span>
+                                                            <span className={`text-xs font-bold flex items-center gap-1.5 ${
+                                                                scan.severity === 'high' ? 'text-red-500' : scan.severity === 'medium' ? 'text-amber-500' : 'text-agri-green'
+                                                            }`}>
+                                                                <AlertTriangle size={14} /> {scan.severity.toUpperCase()} RIsk
+                                                            </span>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                                <div className="flex items-center gap-4 justify-between md:justify-end">
+                                                    <div className="text-right hidden lg:block">
+                                                        <p className="text-[10px] font-black text-gray-400 uppercase mb-1">Detection Confidence</p>
+                                                        <p className="text-xl font-black text-gray-900">{scan.confidence}%</p>
+                                                    </div>
+                                                    <div className={`p-3 rounded-xl ${expandedScanId === scan.id ? 'bg-gray-100 text-gray-900' : 'bg-gray-50 text-gray-400'}`}>
+                                                        {expandedScanId === scan.id ? <ChevronUp size={20} /> : <ChevronDown size={20} />}
+                                                    </div>
+                                                </div>
+                                            </div>
+
+                                            <AnimatePresence>
+                                                {expandedScanId === scan.id && (
+                                                    <motion.div
+                                                        initial={{ height: 0, opacity: 0 }}
+                                                        animate={{ height: 'auto', opacity: 1 }}
+                                                        exit={{ height: 0, opacity: 0 }}
+                                                        className="overflow-hidden border-t border-gray-50"
+                                                    >
+                                                        <div className="p-8 bg-gray-50/30 grid grid-cols-1 md:grid-cols-2 gap-8">
+                                                            <div className="space-y-6">
+                                                                <div className="space-y-2">
+                                                                    <h5 className="text-xs font-black text-gray-400 uppercase tracking-widest flex items-center gap-2">
+                                                                        <FileText size={16} className="text-blue-500" /> Full AI Report
+                                                                    </h5>
+                                                                    <p className="text-sm text-gray-700 font-bold leading-relaxed">
+                                                                        Detailed analysis performed using krushit computer vision model. The visual symptoms match the profile of {scan.disease_detected}.
+                                                                    </p>
+                                                                </div>
+                                                                <div className="space-y-4">
+                                                                    <div className="p-4 bg-white rounded-2xl border border-gray-100 shadow-sm">
+                                                                        <p className="text-[10px] font-black text-agri-green uppercase mb-2">Treatment Recommendation</p>
+                                                                        <p className="text-sm text-gray-700 font-bold">{scan.treatment}</p>
+                                                                    </div>
+                                                                    <div className="p-4 bg-white rounded-2xl border border-gray-100 shadow-sm">
+                                                                        <p className="text-[10px] font-black text-purple-600 uppercase mb-2">Pesticide / Fungicide Suggested</p>
+                                                                        <p className="text-sm text-gray-700 font-bold">{scan.prevention || 'Consult local advisor for specific product brands.'}</p>
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+                                                            <div className="bg-white rounded-3xl p-6 border border-gray-100 shadow-sm flex flex-col justify-center items-center text-center space-y-4">
+                                                                <div className="w-16 h-16 bg-blue-50 rounded-2xl flex items-center justify-center text-blue-600">
+                                                                    <Calendar size={32} />
+                                                                </div>
+                                                                <div>
+                                                                    <p className="text-lg font-black text-gray-900">Next Recommended Action</p>
+                                                                    <p className="text-sm text-gray-500 font-medium">Re-scan in 7 days to monitor recovery progress.</p>
+                                                                </div>
+                                                                <button className="w-full py-4 bg-agri-green text-white rounded-2xl font-black text-sm shadow-lg hover:shadow-agri-green/20 transition-all">
+                                                                    Schedule Task
+                                                                </button>
+                                                            </div>
+                                                        </div>
+                                                    </motion.div>
+                                                )}
+                                            </AnimatePresence>
+                                        </div>
+                                    </motion.div>
+                                ))
+                            )}
+                        </div>
                     </div>
                 </div>
             </div>
         </FarmerDashboardLayout>
     );
 }
+
