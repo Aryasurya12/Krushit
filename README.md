@@ -90,8 +90,55 @@ We believe technology should speak the farmer's language. Krushit is built from 
 - **English** (Standard)
 - **हिंदी (Hindi)** (Primary)
 - **मराठी (Marathi)** (Native Support)
+- **తెలుగు (Telugu)**
+- **বাংলা (Bengali)**
 
 *Selected language persists through sessions and synchronizes across the Dashboard, Chatbot, and Reports.*
+
+---
+
+## 🏗️ Project Architecture & Development Setup
+
+### Project Architecture
+The Krushit platform is a distributed system designed for resilience, speed, and linguistic accessibility.
+
+*   **Frontend**: A Progressive Web Application (PWA) built with **Next.js 14**, providing a smooth, app-like experience on mobile and desktop.
+*   **Backend**: High-performance **FastAPI** services handling real-time requests, system logic, and AI orchestration.
+*   **Database**: **Supabase (PostgreSQL)** for secure, real-time data storage of farmer profiles, crop records, and advisory history.
+*   **AI/ML Module**: A hybrid system using **TensorFlow.js** (client-side) and **Gemini Flash** (server-side) for crop disease detection and smart reasoning.
+*   **External Services**: Integrated **IVR system** capabilities for supporting farmers using feature phones (non-smartphones).
+
+#### System Data Flow
+```mermaid
+graph LR
+    A[Farmer: Mobile / IVR] --> B[Frontend PWA]
+    B --> C[Backend API]
+    C --> D[Database]
+    C --> E[AI/ML Model]
+    E --> F[Crop Insights]
+```
+
+### Project Documentation
+Detailed technical setup and configuration guides are available in the [**/docs**](./docs) folder:
+
+*   [`frontend-setup.md`](./docs/frontend-setup.md) – Installation, local development, and build steps for the Next.js app.
+*   [`backend-setup.md`](./docs/backend-setup.md) – Python environment setup, API documentation, and server execution.
+*   [`local-setup.md`](./docs/local-setup.md) – A comprehensive step-by-step guide to running the entire project ecosystem locally.
+
+These documents are designed to minimize onboarding time for new contributors.
+
+### Environment Variables
+The system relies on several security keys and configuration strings. All required variables are documented in:
+*   `agritech-app/.env.local.example` (Frontend)
+*   `backend/.env.sample` (Backend)
+
+**Action**: Copy these `.example` files to `.env` or `.env.local` and substitute your own configuration values before starting the servers.
+
+### Development Workflow
+To maintain code quality and system integrity, all contributors should follow these standards:
+1.  **Version Control**: Regularly push staged code to GitHub with descriptive commit messages.
+2.  **Documentation First**: Update relevant `.md` files in the `/docs` folder whenever a new feature or architectural change is introduced.
+3.  **Standardization**: Adhere to the established directory structure and linting rules (standard JS/TS and Python PEP 8).
 
 ---
 
