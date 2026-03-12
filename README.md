@@ -90,8 +90,6 @@ We believe technology should speak the farmer's language. Krushit is built from 
 - **English** (Standard)
 - **हिंदी (Hindi)** (Primary)
 - **मराठी (Marathi)** (Native Support)
-- **తెలుగు (Telugu)**
-- **বাংলা (Bengali)**
 
 *Selected language persists through sessions and synchronizes across the Dashboard, Chatbot, and Reports.*
 
