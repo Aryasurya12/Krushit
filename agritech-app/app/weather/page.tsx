@@ -3,7 +3,7 @@
 import { motion } from 'framer-motion';
 import FarmerDashboardLayout from '@/components/FarmerDashboardLayout';
 import { useTranslation } from 'react-i18next';
-import { CloudSun, CloudRain, Sun, Wind, Droplets, Thermometer, Calendar, Clock, CheckCircle, AlertCircle, RefreshCw, ChevronRight, Zap, FlaskConical, Bug, ShieldCheck, MapPin } from 'lucide-react';
+import { CloudSun, CloudRain, Sun, Wind, Droplets, Thermometer, Calendar, Clock, CheckCircle, AlertCircle, RefreshCw, Zap, FlaskConical, Bug, ShieldCheck } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { cropsApi } from '@/lib/api';
 
@@ -30,17 +30,14 @@ export default function WeatherPage() {
         { day: 'Sat', icon: Sun, temp: 31, rain: 15, status: 'sunny' },
         { day: 'Sun', icon: Sun, temp: 33, rain: 5, status: 'sunny' },
     ]);
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const [crops, setCrops] = useState<any[]>([]);
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const [loading, setLoading] = useState(true);
 
-    // Weather Fetching Logic (Mocking real API integration)
     useEffect(() => {
         const fetchWeather = async () => {
-            // In a real app, you would use:
-            // const res = await fetch(`https://api.openweathermap.org/data/2.5/weather?q=Mumbai&appid=YOUR_API_KEY`);
-            // For now, we simulate real-time updates every 30 mins
             console.log("Fetching real-time weather data...");
-            // Simulate slight fluctuations
             setWeatherData(prev => ({
                 ...prev,
                 temp: 28 + Math.floor(Math.random() * 3),
@@ -66,40 +63,38 @@ export default function WeatherPage() {
         const timer = setInterval(() => {
             setCurrentTime(new Date());
             fetchWeather();
-        }, 30 * 60 * 1000); // 30 minutes
+        }, 30 * 60 * 1000);
 
         return () => clearInterval(timer);
     }, []);
 
-    // Cross-Referencing Logic for Schedule
     const getScheduledTasks = () => {
         const rainNext24h = forecast[1].rain > 50 || forecast[2].rain > 50;
         const windHigh = weatherData.wind > 15;
-        const tempHigh = weatherData.temp > 32;
 
         const tasks = [
             {
                 date: 'March 12',
                 type: 'Irrigation',
-                title: 'Irrigation Window',
-                time: rainNext24h ? 'Postponed' : '6:00 AM',
-                desc: rainNext24h ? 'Rain forecast detected. Irrigation paused.' : 'Optimized early morning window.',
+                title: t('weather.irrigationTask'),
+                time: rainNext24h ? t('weather.postponed') : '6:00 AM',
+                desc: rainNext24h ? t('weather.rainIrrigationPaused') : t('weather.conditionsSuitable'),
                 status: rainNext24h ? 'alert' : 'ongoing'
             },
             {
                 date: 'March 14',
                 type: 'Fertilizer',
-                title: 'Fertilizer Application',
+                title: t('weather.fertilizerTask'),
                 time: '8:30 AM',
-                desc: rainNext24h ? 'Delay recommended due to potential runoff.' : 'Apply Nitrogen (40 kg/acre).',
+                desc: rainNext24h ? t('weather.rainFertDelay') : 'Apply Nitrogen (40 kg/acre).',
                 status: rainNext24h ? 'warning' : 'scheduled'
             },
             {
                 date: 'March 18',
                 type: 'Pesticide',
-                title: 'Pesticide Spray',
-                time: windHigh ? 'Not Suitable' : 'Conditions suitable',
-                desc: windHigh ? 'High wind speed detected. Risk of drift.' : 'Ideal weather for uniform application.',
+                title: t('weather.pesticideTask'),
+                time: windHigh ? t('weather.notSuitable') : t('weather.conditionsSuitable'),
+                desc: windHigh ? t('weather.windHighDrift') : t('weather.idealWeather'),
                 status: windHigh ? 'danger' : 'suitable'
             }
         ];
@@ -107,15 +102,12 @@ export default function WeatherPage() {
     };
 
     const scheduledTasks = getScheduledTasks();
-
-    // Spraying Conditions Logic
     const isSprayingSuitable = weatherData.wind < 15 && weatherData.humidity < 70 && weatherData.rainProb < 20;
 
-    // Optimal Irrigation Windows
     const irrigationWindows = [
-        { time: '5:30 AM – 7:30 AM', efficiency: '95%', label: 'Best (Early Morning)', color: 'text-green-600', active: true },
-        { time: '6:00 PM – 8:00 PM', efficiency: '88%', label: 'Good (Evening)', color: 'text-blue-600', active: false },
-        { time: '11:00 AM – 4:00 PM', efficiency: '42%', label: 'Avoid (Peak Heat)', color: 'text-red-500', active: false }
+        { time: '5:30 AM – 7:30 AM', efficiency: '95%', label: t('weather.earlyMorning'), color: 'text-green-600', active: true },
+        { time: '6:00 PM – 8:00 PM', efficiency: '88%', label: t('weather.eveningGood'), color: 'text-blue-600', active: false },
+        { time: '11:00 AM – 4:00 PM', efficiency: '42%', label: t('weather.peakHeatAvoid'), color: 'text-red-500', active: false }
     ];
 
     return (
@@ -141,23 +133,20 @@ export default function WeatherPage() {
 
             {/* Main Weather Hero */}
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
-                {/* Current Weather - Big Card */}
                 <div className="lg:col-span-2 bg-gradient-to-br from-amber-400 to-orange-500 rounded-2xl p-8 text-white shadow-lg relative overflow-hidden flex flex-col justify-between min-h-[280px]">
                     <div className="absolute top-0 right-0 p-10 opacity-20">
                         <Sun size={200} className="animate-[spin_10s_linear_infinite]" />
                     </div>
-
                     <div className="relative z-10">
                         <span className="bg-white/20 backdrop-blur-sm px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider mb-4 inline-block">
                             {t('weather.currentLocation')}
                         </span>
                         <div className="flex items-end gap-4 mb-2">
-                            <h2 className="text-6xl md:text-8xl font-bold">28°</h2>
+                            <h2 className="text-6xl md:text-8xl font-bold">{weatherData.temp}°</h2>
                             <span className="text-3xl md:text-4xl font-medium mb-2 opacity-80">C</span>
                         </div>
-                        <p className="text-xl md:text-2xl font-medium opacity-90">{t('weather.sunny')} & Clear Sky</p>
+                        <p className="text-xl md:text-2xl font-medium opacity-90">{t('weather.sunny')} &amp; Clear Sky</p>
                     </div>
-
                     <div className="relative z-10 grid grid-cols-3 gap-4 mt-8">
                         <div className="bg-white/10 backdrop-blur-sm rounded-xl p-3 border border-white/20">
                             <p className="text-xs uppercase font-bold opacity-70 mb-1">{t('weather.humidity')}</p>
@@ -174,10 +163,8 @@ export default function WeatherPage() {
                     </div>
                 </div>
 
-                {/* Farming Insights */}
                 <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-6 flex flex-col justify-between">
                     <h3 className="text-lg font-bold text-gray-900 mb-4">{t('weather.farmingConditions')}</h3>
-
                     <div className="space-y-4">
                         <div className="flex items-center justify-between p-3 bg-green-50 rounded-xl border border-green-100">
                             <div className="flex items-center gap-3">
@@ -189,7 +176,6 @@ export default function WeatherPage() {
                             </div>
                             <span className="text-green-600 text-xs font-bold bg-white px-2 py-1 rounded shadow-sm">{t('weather.good')}</span>
                         </div>
-
                         <div className="flex items-center justify-between p-3 bg-amber-50 rounded-xl border border-amber-100">
                             <div className="flex items-center gap-3">
                                 <div className="p-2 bg-amber-100 rounded-lg text-amber-600"><Thermometer size={20} /></div>
@@ -200,7 +186,6 @@ export default function WeatherPage() {
                             </div>
                             <span className="text-amber-600 text-xs font-bold bg-white px-2 py-1 rounded shadow-sm">{t('weather.warning')}</span>
                         </div>
-
                         <div className="flex items-center justify-between p-3 bg-blue-50 rounded-xl border border-blue-100">
                             <div className="flex items-center gap-3">
                                 <div className="p-2 bg-blue-100 rounded-lg text-blue-600"><Wind size={20} /></div>
@@ -240,36 +225,34 @@ export default function WeatherPage() {
                 </div>
             </div>
 
+            {/* Rain Alert Banner */}
             <div className="bg-gradient-to-r from-blue-600 to-indigo-700 rounded-3xl p-6 md:p-8 flex flex-col md:flex-row items-center gap-6 shadow-xl shadow-blue-100 mb-16">
                 <div className="flex-shrink-0 w-20 h-20 bg-white/10 backdrop-blur-md text-white rounded-[2rem] flex items-center justify-center border border-white/20">
                     <CloudRain size={40} className="animate-bounce" />
                 </div>
                 <div className="flex-1 text-center md:text-left">
-                    <h4 className="text-2xl font-black text-white mb-2">{forecast[2].day} Night Alert: High Rain Probability</h4>
-                    <p className="text-blue-100 text-lg font-medium">80% chance of heavy precipitation. We recommend securing loose irrigation equipment and postponing fertilizer application.</p>
+                    <h4 className="text-2xl font-black text-white mb-2">{forecast[2].day} — {t('weather.alertTitle')}</h4>
+                    <p className="text-blue-100 text-lg font-medium">{t('weather.alertDesc')}</p>
                 </div>
                 <button className="bg-white text-blue-600 px-8 py-4 rounded-2xl font-black shadow-lg hover:bg-blue-50 transition-all active:scale-95 whitespace-nowrap">
-                    Plan for Rain
+                    {t('weather.planForRain')}
                 </button>
             </div>
 
-            {/* --- New Weather-Integrated Action Calendar --- */}
+            {/* Weather-Integrated Action Calendar */}
             <div className="space-y-12 mb-16">
-                
                 {/* 1. Smart Farming Action Calendar */}
                 <div className="space-y-6">
                     <div className="flex items-center gap-3">
                         <div className="p-2.5 bg-agri-green text-white rounded-xl shadow-md">
                             <Calendar size={24} />
                         </div>
-                        <h2 className="text-2xl font-black text-gray-900 tracking-tight">Smart Farming Action Calendar</h2>
+                        <h2 className="text-2xl font-black text-gray-900 tracking-tight">{t('weather.smartCalendar')}</h2>
                     </div>
 
                     <div className="bg-white rounded-[2.5rem] border border-gray-100 shadow-xl shadow-gray-100/50 p-6 md:p-10 space-y-10">
                         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 relative">
-                            {/* Connected Line (Desktop) */}
                             <div className="absolute left-0 right-0 top-[28px] h-0.5 bg-gray-100 hidden lg:block" />
-                            
                             {scheduledTasks.map((task, idx) => (
                                 <motion.div 
                                     key={idx}
@@ -306,11 +289,11 @@ export default function WeatherPage() {
                                     <Zap size={24} />
                                 </div>
                                 <div className="text-center sm:text-left">
-                                    <h5 className="font-bold text-gray-900">Automatic Rescheduling System</h5>
-                                    <p className="text-xs text-blue-700">Events are adjusted in real-time based on high rain and wind forecasts.</p>
+                                    <h5 className="font-bold text-gray-900">{t('weather.autoReschedule')}</h5>
+                                    <p className="text-xs text-blue-700">{t('weather.autoRescheduleDesc')}</p>
                                 </div>
                             </div>
-                            <span className="px-4 py-2 bg-white text-blue-600 rounded-xl text-xs font-black uppercase border border-blue-200 shadow-sm animate-pulse">Syncing with Forecast...</span>
+                            <span className="px-4 py-2 bg-white text-blue-600 rounded-xl text-xs font-black uppercase border border-blue-200 shadow-sm animate-pulse">{t('weather.syncingForecast')}</span>
                         </div>
                     </div>
                 </div>
@@ -322,36 +305,35 @@ export default function WeatherPage() {
                             <div className="p-2.5 bg-blue-600 text-white rounded-xl shadow-md">
                                 <ShieldCheck size={24} />
                             </div>
-                            <h2 className="text-xl font-black text-gray-900 tracking-tight">Daily Spray Reminder</h2>
+                            <h2 className="text-xl font-black text-gray-900 tracking-tight">{t('weather.dailySpray')}</h2>
                         </div>
                         
                         <div className="bg-white rounded-[2.5rem] border border-gray-100 shadow-xl p-8 relative overflow-hidden">
                             <div className="absolute top-0 right-0 p-8 opacity-5">
                                 <Bug size={100} />
                             </div>
-                            
                             <div className="relative z-10 space-y-6">
                                 <div className="flex items-center justify-between">
                                     <div className="flex items-center gap-3">
                                         <div className={`w-3 h-3 rounded-full ${isSprayingSuitable ? 'bg-green-500 animate-pulse' : 'bg-red-500'}`} />
                                         <span className={`text-sm font-black uppercase tracking-widest ${isSprayingSuitable ? 'text-green-600' : 'text-red-500'}`}>
-                                            Spraying {isSprayingSuitable ? 'Suitable' : 'Not Advised'}
+                                            {isSprayingSuitable ? t('weather.sprayingSuitable') : t('weather.sprayingNotAdvised')}
                                         </span>
                                     </div>
-                                    <div className="text-xs font-bold text-gray-400">Next update: 30 mins</div>
+                                    <div className="text-xs font-bold text-gray-400">{t('weather.nextUpdate')}: 30 {t('weather.mins')}</div>
                                 </div>
 
                                 <div className="space-y-4">
                                     <div className="flex justify-between items-center text-sm font-bold border-b border-gray-50 pb-4">
-                                        <span className="text-gray-500 flex items-center gap-2"><Wind size={16} /> Wind Speed</span>
+                                        <span className="text-gray-500 flex items-center gap-2"><Wind size={16} /> {t('weather.windSpeedLabel')}</span>
                                         <span className={weatherData.wind < 15 ? 'text-agri-green' : 'text-red-500'}>{weatherData.wind} km/h (Limit &lt; 15)</span>
                                     </div>
                                     <div className="flex justify-between items-center text-sm font-bold border-b border-gray-50 pb-4">
-                                        <span className="text-gray-500 flex items-center gap-2"><Droplets size={16} /> Humidity</span>
+                                        <span className="text-gray-500 flex items-center gap-2"><Droplets size={16} /> {t('weather.humidityLabel')}</span>
                                         <span className={weatherData.humidity < 70 ? 'text-agri-green' : 'text-red-500'}>{weatherData.humidity}% (Limit &lt; 70)</span>
                                     </div>
                                     <div className="flex justify-between items-center text-sm font-bold border-b border-gray-50 pb-4">
-                                        <span className="text-gray-500 flex items-center gap-2"><CloudRain size={16} /> Rain Chance</span>
+                                        <span className="text-gray-500 flex items-center gap-2"><CloudRain size={16} /> {t('weather.rainChanceLabel')}</span>
                                         <span className={weatherData.rainProb < 20 ? 'text-agri-green' : 'text-red-500'}>{weatherData.rainProb}% (Limit &lt; 20)</span>
                                     </div>
                                 </div>
@@ -365,7 +347,7 @@ export default function WeatherPage() {
                                             : 'bg-gray-100 text-gray-400 cursor-not-allowed'
                                         }`}
                                     >
-                                        <ShieldCheck size={20} /> Verify & Push Notification
+                                        <ShieldCheck size={20} /> {t('weather.verifyPush')}
                                     </button>
                                 </div>
                             </div>
@@ -378,11 +360,11 @@ export default function WeatherPage() {
                             <div className="p-2.5 bg-amber-500 text-white rounded-xl shadow-md">
                                 <Clock size={24} />
                             </div>
-                            <h2 className="text-xl font-black text-gray-900 tracking-tight">Optimal Irrigation Windows</h2>
+                            <h2 className="text-xl font-black text-gray-900 tracking-tight">{t('weather.optimalIrrigation')}</h2>
                         </div>
 
                         <div className="bg-white rounded-[2.5rem] border border-gray-100 shadow-xl p-8 space-y-6">
-                            <p className="text-sm font-bold text-gray-500">Based on data from {t('weather.currentLocation')}, here are the most efficient windows to reduce evaporation and heat stress.</p>
+                            <p className="text-sm font-bold text-gray-500">{t('weather.basedOnData')} {t('weather.currentLocation')}, {t('weather.efficientWindows')}</p>
                             
                             <div className="space-y-4">
                                 {irrigationWindows.map((window, i) => (
@@ -402,7 +384,7 @@ export default function WeatherPage() {
                                             </div>
                                         </div>
                                         <div className="text-right">
-                                            <p className="text-[10px] font-black text-gray-400 uppercase mb-1">Efficiency</p>
+                                            <p className="text-[10px] font-black text-gray-400 uppercase mb-1">{t('weather.efficiency')}</p>
                                             <p className={`text-xl font-black ${window.color}`}>{window.efficiency}</p>
                                         </div>
                                     </div>
@@ -418,7 +400,7 @@ export default function WeatherPage() {
                         <div className="p-2.5 bg-purple-600 text-white rounded-xl shadow-md">
                             <FlaskConical size={24} />
                         </div>
-                        <h2 className="text-xl font-black text-gray-900 tracking-tight">Weekly Fertilizer Roadmap</h2>
+                        <h2 className="text-xl font-black text-gray-900 tracking-tight">{t('weather.weeklyFertilizer')}</h2>
                     </div>
 
                     <div className="bg-white rounded-[2.5rem] border border-gray-100 shadow-xl p-8 md:p-10">
@@ -452,16 +434,15 @@ export default function WeatherPage() {
                                     <AlertCircle size={24} />
                                 </div>
                                 <p className="text-sm font-medium text-gray-500 max-w-lg">
-                                    Roadmap adapts to **Wheat** vegetative stage and current soil nutrient data. Next fertilizer window is dependent on Monday's rain forecast.
+                                    Roadmap adapts to crop vegetative stage and current soil nutrient data.
                                 </p>
                             </div>
                             <button className="px-6 py-3 bg-gray-900 text-white rounded-xl text-sm font-black shadow-lg hover:bg-black transition-all">
-                                Adjust Protocols
+                                {t('weather.adjustProtocols')}
                             </button>
                         </div>
                     </div>
                 </div>
-
             </div>
         </FarmerDashboardLayout>
     );

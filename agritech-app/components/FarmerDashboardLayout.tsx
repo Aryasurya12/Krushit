@@ -21,7 +21,8 @@ import {
     Bell,
     ChevronDown,
     Search,
-    Users
+    Users,
+    Landmark
 } from 'lucide-react';
 import { useNotifications } from '@/contexts/NotificationContext';
 import NotificationPanel from '@/components/NotificationPanel';
@@ -137,6 +138,7 @@ export default function FarmerDashboardLayout({ children }: { children: React.Re
         { icon: CloudSun, label: t('nav.weather'), href: '/weather' },
         { icon: Activity, label: t('nav.farmHealth'), href: '/recommendations' },
         { icon: Users, label: t('nav.community'), href: '/community' },
+        { icon: Landmark, label: t('nav.schemes'), href: '/schemes' },
         { icon: Mic, label: t('nav.voiceHelp'), href: '#voice', isVoice: true },
         { icon: Settings, label: t('nav.settings'), href: '/settings' },
     ], [t]);
@@ -168,6 +170,8 @@ export default function FarmerDashboardLayout({ children }: { children: React.Re
 
     const changeLanguage = useCallback((lng: string) => {
         i18n.changeLanguage(lng);
+        // Ensure consistent key used everywhere
+        try { localStorage.setItem('krushit_language', lng); } catch { /* ignore */ }
     }, [i18n]);
 
     return (

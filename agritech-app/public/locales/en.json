@@ -11,7 +11,8 @@
     "settings": "Application Settings",
     "nearbyAlerts": "Nearby Alerts",
     "todayAdvice": "Today's Advice",
-    "logout": "Logout"
+    "logout": "Logout",
+    "schemes": "Government Schemes"
   },
   "dashboard": {
     "title": "Dashboard Overview",
@@ -182,7 +183,18 @@
     "dur": "Duration",
     "amt": "Amount Required",
     "next": "Next Date",
-    "alert": "Alert"
+    "alert": "Alert",
+    "waterAdviceTitle": "Water Advice",
+    "fertilizerAdviceTitle": "Fertilizer Advice",
+    "smartFieldActions": "Smart Field Actions",
+    "nutrientRec": "Nutrient Recommendation",
+    "fertilizerType": "Fertilizer Type",
+    "irrigationLow": "Soil moisture is below the optimal range. Irrigation is recommended today.",
+    "irrigationOptimal": "Soil moisture is currently optimal. No irrigation needed for next 24 hours.",
+    "nitrogenLow": "Nitrogen level is low during vegetative stage. Apply nitrogen fertilizer to support leaf growth.",
+    "nutrientStable": "Nutrient levels are stable. Maintain current fertigation schedule.",
+    "startIrrigation": "Start Irrigation",
+    "tomorrow": "Tomorrow"
   },
   "weather": {
     "title": "Weather Forecast",
@@ -211,7 +223,40 @@
     "partlyCloudy": "Partly Cloudy",
     "temp": "Temperature",
     "windSpeed": "Wind Speed",
-    "rainChance": "Rain Probability"
+    "rainChance": "Rain Probability",
+    "smartCalendar": "Smart Farming Action Calendar",
+    "dailySpray": "Daily Spray Reminder",
+    "optimalIrrigation": "Optimal Irrigation Windows",
+    "weeklyFertilizer": "Weekly Fertilizer Roadmap",
+    "sprayingSuitable": "Spraying Suitable",
+    "sprayingNotAdvised": "Spraying Not Advised",
+    "nextUpdate": "Next update",
+    "mins": "mins",
+    "efficiency": "Efficiency",
+    "autoReschedule": "Automatic Rescheduling System",
+    "autoRescheduleDesc": "Events are adjusted in real-time based on high rain and wind forecasts.",
+    "syncingForecast": "Syncing with Forecast...",
+    "planForRain": "Plan for Rain",
+    "adjustProtocols": "Adjust Protocols",
+    "verifyPush": "Verify & Push Notification",
+    "irrigationTask": "Irrigation Window",
+    "fertilizerTask": "Fertilizer Application",
+    "pesticideTask": "Pesticide Spray",
+    "postponed": "Postponed",
+    "rainIrrigationPaused": "Rain forecast detected. Irrigation paused.",
+    "rainFertDelay": "Delay recommended due to potential runoff.",
+    "windHighDrift": "High wind speed detected. Risk of drift.",
+    "idealWeather": "Ideal weather for uniform application.",
+    "conditionsSuitable": "Conditions suitable",
+    "notSuitable": "Not Suitable",
+    "earlyMorning": "Best (Early Morning)",
+    "eveningGood": "Good (Evening)",
+    "peakHeatAvoid": "Avoid (Peak Heat)",
+    "basedOnData": "Based on data from",
+    "efficientWindows": "here are the most efficient windows to reduce evaporation and heat stress.",
+    "windSpeedLabel": "Wind Speed",
+    "rainChanceLabel": "Rain Chance",
+    "humidityLabel": "Humidity"
   },
   "messages": {
     "soilDryTemp": "Water your crop today. Soil is dry and temperature is high.",
@@ -277,7 +322,32 @@
     "moderate": "Moderate",
     "low": "Low",
     "reports": "reports",
-    "title": "Farmer Community"
+    "title": "Farmer Community",
+    "cause": "Cause",
+    "solution": "Solution",
+    "prevention": "Prevention",
+    "fertilizer": "Fertilizer Advice",
+    "riskLevel": "Risk Level",
+    "outbreaks": {
+      "rust": {
+        "cause": "Leaf Rust is commonly caused by fungal pathogens that spread rapidly under humid and warm conditions.",
+        "treatment": "Apply fungicides such as Propiconazole or Mancozeb at recommended dosage.",
+        "prevention": "Use resistant crop varieties, maintain proper spacing, and avoid excess nitrogen fertilization.",
+        "fertilizer": "Balanced NPK fertilization is recommended to maintain plant immunity."
+      },
+      "blast": {
+        "cause": "Blast Disease is caused by Magnaporthe oryzae, flourishing in humid and rainy weather.",
+        "treatment": "Use Tricyclazole or Isoprothiolane immediately upon spotting lesions.",
+        "prevention": "Optimize planting time to avoid rainy, humid conditions during heading stage.",
+        "fertilizer": "Avoid excessive nitrogen application which increases susceptibility."
+      },
+      "aphids": {
+        "cause": "Aphid infestation occurs rapidly in dry and warm climates, stunting plant growth.",
+        "treatment": "Apply Neem oil spray or systemic insecticides like Imidacloprid.",
+        "prevention": "Encourage natural predators like ladybugs and use reflective mulches.",
+        "fertilizer": "Avoid over-fertilizing with nitrogen, which promotes lush growth attractive to aphids."
+      }
+    }
   },
   "recommendations": {
     "healthScore": "Health Score",
@@ -377,5 +447,97 @@
   "farmHealth": {
     "title": "Farm Health Insights",
     "description": "Monitor crop health, irrigation needs, and risk conditions across your farm"
+  },
+  "schemes": {
+    "title": "Government Agricultural Schemes",
+    "subtitle": "Explore government schemes, subsidies, and support programs available for farmers.",
+    "searchPlaceholder": "Search schemes...",
+    "filterCategory": "All Categories",
+    "filterState": "All States",
+    "apply": "Apply Now",
+    "viewDetails": "View Details",
+    "latestAnnouncements": "Latest Government Announcements",
+    "new": "New",
+    "description": "Description",
+    "eligibility": "Eligibility Criteria",
+    "benefits": "Benefits",
+    "documents": "Required Documents",
+    "applicationSteps": "Application Steps",
+    "categories": {
+      "subsidy": "Subsidy Programs",
+      "insurance": "Crop Insurance",
+      "equipment": "Equipment Subsidy",
+      "irrigation": "Irrigation Schemes",
+      "soilHealth": "Soil Health Programs",
+      "finance": "Financial Support"
+    },
+    "list": [
+      {
+        "id": "pmkisan",
+        "name": "PM-KISAN Samman Nidhi",
+        "shortDesc": "Income support scheme providing financial assistance to small and marginal farmers.",
+        "category": "finance",
+        "eligibility": "Small and marginal landholding farmers. Family owning cultivable land up to 2 hectares.",
+        "benefits": "₹6000 per year financial support in three equal installments.",
+        "documents": ["Aadhaar Card", "Bank Account Details", "Land Holding Papers"],
+        "steps": ["Visit official PM-KISAN portal", "Click on 'New Farmer Registration'", "Fill required details and submit"],
+        "link": "https://pmkisan.gov.in/"
+      },
+      {
+        "id": "pmfby",
+        "name": "Pradhan Mantri Fasal Bima Yojana (PMFBY)",
+        "shortDesc": "Crop insurance scheme providing financial support to farmers suffering crop loss/damage.",
+        "category": "insurance",
+        "eligibility": "All farmers growing notified crops in notified areas, including sharecroppers and tenant farmers.",
+        "benefits": "Comprehensive risk cover from pre-sowing to post-harvest losses. Premium is extremely low (1.5% to 2%).",
+        "documents": ["Aadhaar Card", "Bank Passbook", "Land Records", "Sowing Certificate"],
+        "steps": ["Register on National Crop Insurance Portal", "Submit crop details and pay premium before cut-off date"],
+        "link": "https://pmfby.gov.in/"
+      },
+      {
+        "id": "pmksy",
+        "name": "PM Krishi Sinchai Yojana",
+        "shortDesc": "Scheme to improve farm water use efficiency and expand cultivable area under assured irrigation.",
+        "category": "irrigation",
+        "eligibility": "Farmers, Water User Associations, Co-operative Societies.",
+        "benefits": "Subsidies for micro-irrigation systems like drip and sprinkler irrigation (up to 55%).",
+        "documents": ["Aadhaar Card", "Land documents", "Bank details", "Quotation for irrigation system"],
+        "steps": ["Apply through State Agriculture/Horticulture Department", "Approval and field inspection"],
+        "link": "https://pmksy.gov.in/"
+      },
+      {
+        "id": "soilhealth",
+        "name": "Soil Health Card Scheme",
+        "shortDesc": "Provides soil health cards to farmers with crop-wise recommendations of nutrients and fertilizers.",
+        "category": "soilHealth",
+        "eligibility": "All farmers in India.",
+        "benefits": "Free soil testing and customized fertilizer usage advice to improve yield and save costs.",
+        "documents": ["Basic farmer details"],
+        "steps": ["State government collects soil samples", "Samples tested in labs", "Card distributed locally"],
+        "link": "https://soilhealth.dac.gov.in/"
+      },
+      {
+        "id": "kcc",
+        "name": "Kisan Credit Card (KCC)",
+        "shortDesc": "Meets the working capital and short-term credit requirements of farmers.",
+        "category": "finance",
+        "eligibility": "Individual/Joint borrowers who are owner cultivators, tenant farmers, output sharecroppers.",
+        "benefits": "Access to short-term crop loans at concessional interest rates (subvention up to 3%).",
+        "documents": ["Aadhaar Card", "PAN/Voter ID", "Land documents", "Passport size photo", "No Dues certificate"],
+        "steps": ["Download KCC form", "Submit to nearest bank branch", "Loan sanctioned upon verification"],
+        "link": "https://sbi.co.in/web/agri-rural/agriculture-banking/crop-loan/kisan-credit-card"
+      },
+      {
+        "id": "enam",
+        "name": "National Agriculture Market (e-NAM)",
+        "shortDesc": "Pan-India electronic trading portal networking existing APMC mandis.",
+        "category": "subsidy",
+        "eligibility": "Farmers registered with APMC mandis.",
+        "benefits": "Direct access to buyers across India, ensuring better price realization for produce.",
+        "documents": ["Aadhaar Card", "Bank Details"],
+        "steps": ["Register on e-NAM portal or mobile app", "Bring produce to mandi for assaying and online bidding"],
+        "link": "https://enam.gov.in/"
+      }
+    ]
   }
 }

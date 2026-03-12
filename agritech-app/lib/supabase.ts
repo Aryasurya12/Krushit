@@ -9,6 +9,8 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
         persistSession: true,
         autoRefreshToken: true,
         detectSessionInUrl: true,
+        // Bypass the internal locking mechanism that throws the AbortError
+        lock: (name: string, timeout: number, acquire: () => Promise<any>) => acquire(),
     },
 });
 

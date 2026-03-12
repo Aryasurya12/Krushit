@@ -115,31 +115,37 @@ export default function AIChatbot() {
             recognitionRef.current.continuous = false;
             recognitionRef.current.interimResults = false;
 
-            // FIXED: Set language based on app language (using Indian English)
+            // FIXED: Set language based on app language
             const langMap: Record<string, string> = {
-                en: 'en-IN',
+                en: 'en-US',
                 hi: 'hi-IN',
                 mr: 'mr-IN'
             };
-            recognitionRef.current.lang = langMap[i18n.language] || 'en-IN';
+            recognitionRef.current.lang = langMap[i18n.language] || 'en-US';
 
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
             recognitionRef.current.onresult = (event: any) => {
                 const transcript = event.results[event.results.length - 1][0].transcript;
+                console.log("🔊 Speech Captured:", transcript);
                 setInput(transcript);
                 setIsListening(false);
                 setSendTrigger(transcript); // Auto-send
             };
 
-            recognitionRef.current.onerror = () => {
+            recognitionRef.current.onerror = (event: any) => {
+                console.error("🔊 Speech recognition error", event.error);
                 setIsListening(false);
+                // Display error message
+                const prevInput = input;
+                setInput("Voice not recognized. Please try again.");
+                setTimeout(() => setInput(prevInput), 2500);
             };
 
             recognitionRef.current.onend = () => {
                 setIsListening(false);
             };
         }
-    }, [i18n.language]);
+    }, [i18n.language, input]);
 
     // FIXED: Text-to-speech function with proper voice selection
     const speak = (text: string) => {
@@ -262,11 +268,11 @@ export default function AIChatbot() {
         if (recognitionRef.current) {
             // FIXED: Update language dynamically before starting
             const langMap: Record<string, string> = {
-                en: 'en-IN',
+                en: 'en-US',
                 hi: 'hi-IN',
                 mr: 'mr-IN'
             };
-            recognitionRef.current.lang = langMap[i18n.language] || 'en-IN';
+            recognitionRef.current.lang = langMap[i18n.language] || 'en-US';
             setIsListening(true);
             recognitionRef.current.start();
         }
@@ -280,10 +286,28 @@ export default function AIChatbot() {
         }
     };
 
-    // FIXED: Dynamic AI-powered response generator (calls FastAPI Backend)
-    const getAIResponse = async (userMessage: string, historyPayload: any[]): Promise<string> => {
-        const lang = i18n.language as 'en' | 'hi' | 'mr';
+    // 3. Language Detection
+    const detectLanguage = (text: string): 'en' | 'hi' | 'mr' => {
+        const devanagariRegex = /[\u0900-\u097F]/;
+        if (devanagariRegex.test(text)) {
+            const marathiWords = ['का', 'आहे', 'नाही', 'माझ्या', 'द्यायचे', 'मला', 'काय', 'कसे', 'पाणी'];
+            const hindiWords = ['क्या', 'है', 'नहीं', 'मेरा', 'मुझे', 'चाहिए', 'क्यूँ', 'कैसे', 'पानी'];
+            const words = text.split(/\s+/);
+            let marathiScore = 0;
+            let hindiScore = 0;
+            for (const word of words) {
+                if (marathiWords.includes(word)) marathiScore++;
+                if (hindiWords.includes(word)) hindiScore++;
+            }
+            if (marathiScore > hindiScore) return 'mr';
+            if (hindiScore > marathiScore) return 'hi';
+            return i18n.language === 'mr' ? 'mr' : 'hi';
+        }
+        return 'en';
+    };
 
+    // FIXED: Dynamic AI-powered response generator (calls FastAPI Backend)
+    const getAIResponse = async (userMessage: string, historyPayload: any[], user_language: string): Promise<string> => {
         try {
             console.log('🤖 Sending message to AI Backend (Port 8001)...');
             const response = await fetch('http://127.0.0.1:8001/chat', {
@@ -293,7 +317,7 @@ export default function AIChatbot() {
                 },
                 body: JSON.stringify({
                     message: userMessage,
-                    language: lang,
+                    language: user_language, // Use detected user language
                     history: historyPayload,
                     context: getPageContext()
                 }),
@@ -317,7 +341,7 @@ export default function AIChatbot() {
                 mr: "कनेक्शन एरर! कृपया खात्री करा की बॅकएंड चालू आहे."
             };
 
-            return errorMessages[lang] || errorMessages.en;
+            return errorMessages[user_language] || errorMessages.en;
         }
     };
 
@@ -326,7 +350,11 @@ export default function AIChatbot() {
     // Send message
     const handleSend = async (overrideInput?: string) => {
         const textToSend = typeof overrideInput === 'string' ? overrideInput : input;
-        if (!textToSend.trim()) return;
+        if (!textToSend.trim() || textToSend === "Voice not recognized. Please try again.") return;
+
+        // Detect user language before sending
+        const user_language = detectLanguage(textToSend);
+        console.log(`🌍 Detected user language: ${user_language} for text: "${textToSend}"`);
 
         const userMessage: Message = {
             id: Date.now().toString(),
@@ -343,7 +371,7 @@ export default function AIChatbot() {
         setIsTyping(true);
 
         try {
-            const botResponse = await getAIResponse(textToSend, previousHistory);
+            const botResponse = await getAIResponse(textToSend, previousHistory, user_language);
             const botMessage: Message = {
                 id: (Date.now() + 1).toString(),
                 text: botResponse,

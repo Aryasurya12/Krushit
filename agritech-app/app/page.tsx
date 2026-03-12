@@ -180,7 +180,10 @@ export default function LandingPage() {
             <div className="flex items-center gap-4">
               <select
                 value={i18n.language}
-                onChange={(e) => i18n.changeLanguage(e.target.value)}
+                onChange={(e) => {
+                  i18n.changeLanguage(e.target.value);
+                  try { localStorage.setItem('krushit_language', e.target.value); } catch { /* ignore */ }
+                }}
                 className="px-3 py-1.5 rounded-lg border border-gray-200 text-sm font-medium bg-white hover:border-green-300 transition-colors"
               >
                 <option value="en">EN</option>

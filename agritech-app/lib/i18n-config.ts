@@ -12,29 +12,47 @@ const resources = {
     mr: { translation: mr },
 };
 
-// Get saved language from localStorage or default to Hindi (most common in rural India)
-const savedLanguage = typeof window !== 'undefined'
-    ? localStorage.getItem('language') || 'hi'
-    : 'hi';
+// Get saved language from localStorage or default to English
+// We do this safely — localStorage is only available on the client.
+const getInitialLanguage = (): string => {
+    if (typeof window === 'undefined') return 'en';
+    try {
+        return localStorage.getItem('krushit_language') || 'en';
+    } catch {
+        return 'en';
+    }
+};
 
-i18n
-    .use(initReactI18next)
-    .init({
-        resources,
-        lng: savedLanguage,
-        fallbackLng: 'en',
-        interpolation: {
-            escapeValue: false,
-        },
-        react: {
-            useSuspense: false,
-        },
-    });
+// Only initialize once (i18next is a singleton module)
+if (!i18n.isInitialized) {
+    i18n
+        .use(initReactI18next)
+        .init({
+            resources,
+            lng: getInitialLanguage(),
+            fallbackLng: 'en',
+            interpolation: {
+                escapeValue: false,
+            },
+            react: {
+                useSuspense: false,
+                // This is what makes ALL components re-render on language change
+                bindI18n: 'languageChanged loaded',
+                bindI18nStore: 'added',
+                nsMode: 'default',
+            },
+        });
+}
 
-// Save language preference when it changes
+// Persist language selection whenever it changes (and debug log)
 i18n.on('languageChanged', (lng) => {
+    console.log(`[Krushit i18n] Language changed to: ${lng}`);
     if (typeof window !== 'undefined') {
-        localStorage.setItem('language', lng);
+        try {
+            localStorage.setItem('krushit_language', lng);
+        } catch {
+            // Ignore storage errors
+        }
     }
 });
 

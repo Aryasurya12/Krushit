@@ -80,7 +80,7 @@ export default function SettingsPage() {
 
     const handleLanguageChange = (lang: string) => {
         i18n.changeLanguage(lang);
-        localStorage.setItem('i18nextLng', lang);
+        try { localStorage.setItem('krushit_language', lang); } catch { /* ignore */ }
         // Persist to profile
         updateProfile({ language: lang });
     };

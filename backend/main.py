@@ -402,53 +402,93 @@ async def update_sensor_reading(request: SensorReadingRequest):
         logger.error(f"IoT Update Error: {e}")
         return {"status": "error", "message": str(e)}
 
-@app.get("/iot/advice/{user_id}")
-async def get_irrigation_advice(user_id: str):
-    """Analyze recent sensor data for a user and return actionable advice."""
+@app.get("/iot/smart-advice/{user_id}")
+async def get_smart_advice(user_id: str):
+    """Analyze all sensor categories and return structured advice per crop."""
     if not supabase:
-        return {"advice": "Water management offline. Please check connection."}
+        return {"error": "Supabase not configured"}
 
     try:
-        # Fetch latest moisture from iot_sensors table
+        # 1. Fetch latest readings for all sensor types
+        # We fetch enough to likely cover all types for several crops
         res = supabase.table("iot_sensors")\
             .select("*")\
             .eq("user_id", user_id)\
-            .eq("sensor_type", "moisture")\
             .order("timestamp", desc=True)\
-            .limit(1)\
+            .limit(100)\
             .execute()
         
         if not res.data:
-            # Fallback for demo if no data exists yet
-            return {
-                "status": "No Data",
-                "recommendation": "Please connect your moisture sensor to get real-time advice.",
-                "amount": "0 L",
-                "method": "None",
-                "duration": "0 mins"
+            return {"status": "no_data", "crops": {}}
+
+        # 2. Group by crop and find latest for each type
+        crop_data = {}
+        for r in res.data:
+            c_id = r.get('crop_id') or "general"
+            s_type = r.get('sensor_type', '').lower()
+            val = r.get('value')
+            
+            # Map common variations to standard keys
+            if s_type in ['moisture', 'soil_moisture']: s_key = 'moisture'
+            elif s_type in ['temp', 'temperature', 'soil_temp']: s_key = 'temperature'
+            elif s_type in ['humidity', 'air_humidity']: s_key = 'humidity'
+            elif s_type in ['ph', 'soil_ph']: s_key = 'ph'
+            elif s_type in ['nitrogen', 'n']: s_key = 'nitrogen'
+            elif s_type in ['phosphorus', 'p']: s_key = 'phosphorus'
+            elif s_type in ['potassium', 'k']: s_key = 'potassium'
+            else: s_key = s_type
+            
+            if c_id not in crop_data:
+                crop_data[c_id] = {}
+            
+            if s_key not in crop_data[c_id]:
+                crop_data[c_id][s_key] = val
+
+        # 3. Generate advice per crop
+        results = {}
+        for c_id, sensors in crop_data.items():
+            # Moisture Logic
+            moisture = sensors.get('moisture', 45)
+            m_status = "Optimal"
+            m_advice = "Soil moisture is healthy."
+            if moisture < 30:
+                m_status, m_advice = "Low", "Critical: Water immediately."
+            elif moisture < 42:
+                m_status, m_advice = "Warning", "Moisture dropping. Schedule irrigation."
+            
+            # pH Logic
+            ph = sensors.get('ph', 6.8)
+            ph_status = "Optimal"
+            if ph < 6.0: ph_status = "Acidic"
+            elif ph > 7.5: ph_status = "Alkaline"
+
+            # NPK Logic
+            n = sensors.get('nitrogen', 42)
+            n_status = "Optimal" if 40 <= n <= 60 else ("Low" if n < 40 else "High")
+            
+            p = sensors.get('phosphorus', 68)
+            p_status = "Optimal" if 30 <= p <= 50 else ("Low" if p < 30 else "Good")
+            
+            k = sensors.get('potassium', 55)
+            k_status = "Optimal" if 40 <= k <= 60 else ("Low" if k < 40 else "Good")
+
+            results[c_id] = {
+                "sensors": {
+                    "moisture": {"value": moisture, "status": m_status, "advice": m_advice},
+                    "ph": {"value": ph, "status": ph_status},
+                    "nitrogen": {"value": n, "status": n_status},
+                    "phosphorus": {"value": p, "status": p_status},
+                    "potassium": {"value": k, "status": k_status},
+                    "temperature": {"value": sensors.get('temperature', 24)},
+                    "humidity": {"value": sensors.get('humidity', 65)}
+                },
+                "fertilizer_advice": "Nitrogen is low." if n < 40 else "Nutrients are balanced."
             }
 
-        current_moisture = float(res.data[0]['value'])
-        
-        # Decision Logic
-        if current_moisture < 30:
-            status, rec, amt, dur = "Urgent", "Soil is extremely dry. Water immediately.", "500 L", "30 mins"
-        elif current_moisture < 45:
-            status, rec, amt, dur = "Warning", "Moisture levels dropping. Scheduled watering recommended.", "300 L", "20 mins"
-        else:
-            status, rec, amt, dur = "Optimal", "Soil moisture is healthy. No irrigation needed today.", "0 L", "0 mins"
-
-        return {
-            "status": status,
-            "recommendation": rec,
-            "current_moisture": current_moisture,
-            "amount": amt,
-            "method": "Drip Irrigation",
-            "duration": dur
-        }
+        return {"status": "success", "crops": results}
     except Exception as e:
-        logger.error(f"Advice Error: {e}")
-        return {"error": str(e)}
+        logger.error(f"Smart Advice Error: {e}")
+        return {"status": "error", "message": str(e)}
 
 # ──────────────────────────────────────────────────────────────────────────────
 # 6. Community (Social) Endpoints

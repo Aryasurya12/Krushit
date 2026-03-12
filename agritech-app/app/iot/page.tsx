@@ -175,7 +175,7 @@ const CropAdvisoryCard = ({ crop, index }: any) => {
                                         <div className="p-2 bg-blue-500 text-white rounded-lg shadow-sm">
                                             <Droplets size={20} />
                                         </div>
-                                        <h3 className="text-lg font-bold text-gray-900">{t('water.fertilizer').replace('Fertilizer', 'Water')}</h3>
+                                        <h3 className="text-lg font-bold text-gray-900">{t('water.waterAdviceTitle')}</h3>
                                     </div>
                                     
                                     <div className="grid grid-cols-1 gap-3">
@@ -217,8 +217,8 @@ const CropAdvisoryCard = ({ crop, index }: any) => {
                                         </div>
                                         <p className="text-xl font-bold text-gray-900 leading-tight mb-6">
                                             {isMoistureLow 
-                                                ? "Soil moisture is below the optimal range. Irrigation is recommended today."
-                                                : "Soil moisture is currently optimal. No irrigation needed for next 24 hours."}
+                                                ? t('water.irrigationLow')
+                                                : t('water.irrigationOptimal')}
                                         </p>
                                         
                                         <div className="grid grid-cols-2 gap-4">
@@ -236,7 +236,7 @@ const CropAdvisoryCard = ({ crop, index }: any) => {
                                             </div>
                                             <div className="bg-blue-50/50 p-4 rounded-2xl border border-blue-100">
                                                 <p className="text-[10px] font-bold text-blue-600 uppercase mb-1">{t('water.nextCheck')}</p>
-                                                <p className="text-lg font-black text-gray-900">Tomorrow</p>
+                                                <p className="text-lg font-black text-gray-900">{t('water.tomorrow')}</p>
                                             </div>
                                         </div>
                                     </div>
@@ -294,17 +294,17 @@ const CropAdvisoryCard = ({ crop, index }: any) => {
                                 <div className="lg:col-span-8 bg-white/70 backdrop-blur-sm rounded-3xl border border-green-100/50 p-6 md:p-8 flex flex-col md:flex-row gap-8 shadow-sm">
                                     <div className="flex-1">
                                         <div className="flex items-center gap-2 text-agri-green font-bold text-xs uppercase tracking-widest mb-4">
-                                            <FlaskConical size={16} /> Nutrient Recommendation
+                                            <FlaskConical size={16} /> {t('water.nutrientRec')}
                                         </div>
                                         <p className="text-xl font-bold text-gray-900 leading-tight mb-6">
                                             {isVegetative 
-                                                ? "Nitrogen level is low during vegetative stage. Apply nitrogen fertilizer to support leaf growth."
-                                                : "Nutrient levels are stable. Maintain current fertigation schedule."}
+                                                ? t('water.nitrogenLow')
+                                                : t('water.nutrientStable')}
                                         </p>
                                         
                                         <div className="grid grid-cols-2 gap-4">
                                             <div className="bg-green-50/50 p-4 rounded-2xl border border-green-100">
-                                                <p className="text-[10px] font-bold text-agri-green uppercase mb-1">Fertilizer Type</p>
+                                                <p className="text-[10px] font-bold text-agri-green uppercase mb-1">{t('water.fertilizerType')}</p>
                                                 <p className="text-lg font-black text-gray-900">{isVegetative ? 'Urea / NPK' : 'None'}</p>
                                             </div>
                                             <div className="bg-green-50/50 p-4 rounded-2xl border border-green-100">
@@ -338,7 +338,7 @@ const CropAdvisoryCard = ({ crop, index }: any) => {
                                     <div className="p-2 bg-amber-500 text-white rounded-lg shadow-md">
                                         <Zap size={20} />
                                     </div>
-                                    <h3 className="text-xl font-black text-gray-900 tracking-tight">Smart Field Actions</h3>
+                                    <h3 className="text-xl font-black text-gray-900 tracking-tight">{t('water.smartFieldActions')}</h3>
                                 </div>
 
                                 {/* REFACTORED: Action Buttons in 3-column grid */}

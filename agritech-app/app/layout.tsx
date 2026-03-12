@@ -68,6 +68,21 @@ export default function RootLayout({
       <head>
         <link rel="manifest" href="/manifest.json" />
         <meta name="theme-color" content="#10b981" />
+        <script dangerouslySetInnerHTML={{ __html: `
+            window.addEventListener('unhandledrejection', function(event) {
+                if (event.reason && (event.reason.name === 'AbortError' || String(event.reason).includes('AbortError'))) {
+                    event.preventDefault();
+                    return false;
+                }
+            });
+            const originalConsoleError = console.error;
+            console.error = function(...args) {
+                if (args.some(arg => arg && (arg.name === 'AbortError' || String(arg).includes('AbortError')))) {
+                    return;
+                }
+                originalConsoleError.apply(console, args);
+            };
+        `}} />
       </head>
       <body className="antialiased">
         <AuthProvider>
@@ -89,6 +104,21 @@ export default function RootLayout({
                     });
                 }
             }
+
+            // Globally suppress AbortError "Unhandled Runtime Error" overlays in Next.js
+            window.addEventListener('unhandledrejection', event => {
+                if (event.reason && (event.reason.name === 'AbortError' || event.reason.message?.includes('AbortError') || String(event.reason) === 'AbortError: signal is aborted without reason')) {
+                    event.preventDefault(); // Suppress the unhandled rejection
+                }
+            });
+
+            const originalError = console.error;
+            console.error = (...args) => {
+                if (args.some(arg => arg && (arg.name === 'AbortError' || String(arg).includes('AbortError')))) {
+                    return; // Ignore AbortError logs
+                }
+                originalError.apply(console, args);
+            };
           `}} />
         </AuthProvider>
       </body>

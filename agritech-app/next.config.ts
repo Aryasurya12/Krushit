@@ -38,7 +38,7 @@ const withPWA = withPWAInit({
 });
 
 const nextConfig: NextConfig = {
-  reactStrictMode: true,
+  reactStrictMode: false,
   // swcMinify is default in Next 15
   // compress is default true in Next 15
 
