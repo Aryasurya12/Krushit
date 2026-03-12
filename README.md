@@ -118,6 +118,66 @@ graph LR
     E --> F[Crop Insights]
 ```
 
+#### Full Application Component Map
+```mermaid
+graph TD
+    %% Entry Points
+    F_User[Farmer: Mobile PWA]
+    A_User[Admin: Web Dashboard]
+    
+    subgraph Farmer_Experience [Farmer Dashboard]
+        F_Scan[AI Disease Detection]
+        F_Weather[Smart Weather Advisor]
+        F_IoT[IoT Sensor Analytics]
+        F_Comm[Community Disease Map]
+        F_Voice[AI Voice Assistant]
+        F_Gov[Government Schemes]
+    end
+
+    subgraph Admin_Experience [Admin Command Center]
+        A_UserMgmt[User & Farm Audit]
+        A_Heatmap[Regional Outbreak Trends]
+        A_Realtime[Live System Health]
+        A_Reports[CSV/PDF Report Generation]
+    end
+
+    subgraph Intelligence_Layer [AI & Decision Logic]
+        TF[TensorFlow.js: Vision Model]
+        Gemini[Google Gemini: LLM Advisor]
+        Advisory[Smart Irrigation Engine]
+    end
+
+    subgraph Backend_Services [FastAPI Middleware]
+        Core_API[Core Service Hub]
+        Auth[JWT Security Layer]
+        IoT_Hub[Sensor Data Pipeline]
+    end
+
+    subgraph Data_Persistence [Cloud Layer]
+        Supabase[(Supabase: PostgreSQL)]
+        C_Storage[Cloud Image Storage]
+    end
+
+    %% Relationships
+    F_User --> Farmer_Experience
+    A_User --> Admin_Experience
+    
+    Farmer_Experience --> Core_API
+    Admin_Experience --> Core_API
+    
+    Core_API --> Auth
+    Core_API --> Intelligence_Layer
+    Core_API --> IoT_Hub
+    
+    Intelligence_Layer --> TF
+    Intelligence_Layer --> Gemini
+    
+    IoT_Hub --> Supabase
+    Core_API --> Supabase
+    Core_API --> C_Storage
+```
+
+
 ### Project Documentation
 Detailed technical setup and configuration guides are available in the [**/docs**](./docs) folder:
 
