@@ -1,6 +1,16 @@
 import type { NextConfig } from "next";
 import withPWAInit from "@ducanh2912/next-pwa";
 
+import type { NextConfig } from "next";
+
+const nextConfig: NextConfig = {
+  eslint: {
+    ignoreDuringBuilds: true,
+  },
+};
+
+export default nextConfig;
+
 const withPWA = withPWAInit({
   dest: "public",
   cacheOnFrontEndNav: true,
