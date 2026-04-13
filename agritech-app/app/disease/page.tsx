@@ -52,19 +52,19 @@ export default function ScanCropPage() {
         fetchCrops();
     }, []);
 
-    // Fetch history whenever selected crop or user changes
+    // Fetch history whenever selected crop changes, using local storage
     const fetchHistory = async () => {
-        if (!user || !selectedCropId) return;
+        if (!selectedCropId) return;
         setLoadingHistory(true);
         try {
-            const { data, error } = await supabase
-                .from('disease_scans')
-                .select('*')
-                .eq('crop_id', selectedCropId)
-                .order('created_at', { ascending: false });
-
-            if (error) throw error;
-            setScanHistory(data || []);
+            const rawData = localStorage.getItem(`disease_scans_${selectedCropId}`);
+            let data = [];
+            if (rawData) {
+                data = JSON.parse(rawData);
+            }
+            data.sort((a: any, b: any) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+            
+            setScanHistory(data);
         } catch (err) {
             console.error("Failed to fetch history:", err);
         } finally {
@@ -200,11 +200,12 @@ export default function ScanCropPage() {
                 'ai'
             );
 
-            // AUTO-SAVE to database (as per requirement)
-            if (user && selectedCropId) {
+            // AUTO-SAVE to database (as per requirement) via localStorage
+            if (selectedCropId) {
                 try {
-                    await supabase.from('disease_scans').insert({
-                        user_id: user.id,
+                    const newScan = {
+                        id: Date.now().toString(),
+                        user_id: user?.id || 'local_user',
                         crop_id: selectedCropId,
                         disease_detected: data.disease,
                         confidence: data.confidence,
@@ -212,11 +213,21 @@ export default function ScanCropPage() {
                         image_url: selectedImage || '',
                         treatment: data.treatment || '',
                         prevention: data.prevention || '',
-                        health_score: data.disease.toLowerCase().includes('healthy') ? 95 : Math.max(20, 95 - data.confidence * 0.8)
-                    });
+                        health_score: data.disease.toLowerCase().includes('healthy') ? 95 : Math.max(20, 95 - data.confidence * 0.8),
+                        created_at: new Date().toISOString()
+                    };
+
+                    const rawData = localStorage.getItem(`disease_scans_${selectedCropId}`);
+                    let existingScans = [];
+                    if (rawData) {
+                        existingScans = JSON.parse(rawData);
+                    }
+                    existingScans.push(newScan);
+                    localStorage.setItem(`disease_scans_${selectedCropId}`, JSON.stringify(existingScans));
+
                     fetchHistory();
                 } catch (saveErr) {
-                    console.warn("Auto-save failed:", saveErr);
+                    console.warn("Auto-save to local storage failed:", saveErr);
                 }
             }
         } catch (error: any) { // eslint-disable-line @typescript-eslint/no-explicit-any

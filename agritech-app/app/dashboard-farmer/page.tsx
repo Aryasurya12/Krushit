@@ -5,7 +5,7 @@ import { useTranslation } from 'react-i18next';
 import { Sprout, Droplets, AlertTriangle, Activity, CloudSun, Wind, CloudRain, CheckCircle, ThermometerSun, Leaf, Camera, Plus, Map, CheckCircle2, Circle, MapPin } from 'lucide-react';
 import FarmerDashboardLayout from '@/components/FarmerDashboardLayout';
 import { motion } from 'framer-motion';
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useNotifications } from '@/contexts/NotificationContext';
 
 export default function FarmerHomePage() {
@@ -37,21 +37,93 @@ export default function FarmerHomePage() {
         { title: t('dashboard.home.atRiskCrops'), value: '1', icon: AlertTriangle, color: 'text-red-600', bg: 'bg-red-100' },
     ];
 
-    // Weather Data
-    const weather = {
-        temp: '32°C',
-        rain: '20%',
-        wind: '12 km/h',
-        condition: t('weather.sunny'),
-        advice: t('dashboard.home.advice') + ": " + t('dashboard.home.advice') // Placeholder
-    };
-
     // Farm Health Overview
     const cropHealth = [
         { name: t('crop_data.wheat'), health: 92, risk: t('community.low') },
         { name: 'Tomato', health: 75, risk: t('community.moderate') },
         { name: t('crop_data.rice'), health: 88, risk: t('community.low') },
     ];
+
+    // Weather Data & Dynamic Tasks
+    const [weather, setWeather] = useState({
+        temp: '--°C',
+        rain: '--%',
+        wind: '-- km/h',
+        condition: t('weather.sunny') || 'Loading...',
+        advice: 'Fetching smart advice...'
+    });
+
+    const [tasks, setTasks] = useState([
+        { id: 1, title: t('dashboard.home.irrigateWheat'), time: '4:00 PM', done: false },
+        { id: 2, title: t('dashboard.home.applyFertilizer'), time: t('nav.todayAdvice'), done: false },
+        { id: 3, title: t('dashboard.home.inspectLeaves'), time: t('nav.todayAdvice'), done: true },
+    ]);
+
+    useEffect(() => {
+        async function fetchSmartData() {
+            try {
+                // Fetch real-time weather data
+                const res = await fetch('https://api.open-meteo.com/v1/forecast?latitude=18.5204&longitude=73.8567&current=temperature_2m,wind_speed_10m,weather_code&hourly=precipitation_probability');
+                const data = await res.json();
+                
+                const temp = data.current.temperature_2m;
+                const wind = data.current.wind_speed_10m;
+                const rainProb = data.hourly?.precipitation_probability?.[0] || 0;
+                const code = data.current.weather_code;
+
+                let conditionStr = 'Sunny';
+                if (code >= 1 && code <= 3) conditionStr = 'Partly Cloudy';
+                if (code >= 51 && code <= 67) conditionStr = 'Rainy';
+                if (code >= 71 && code <= 77) conditionStr = 'Snowy';
+                if (code >= 95) conditionStr = 'Thunderstorm';
+
+                let advice = 'Conditions are optimal for farming today.';
+                if (rainProb > 50) advice = 'High chance of rain. Avoid irrigation today.';
+                else if (temp > 30) advice = 'High temperature expected. Irrigate in the evening.';
+                else if (wind > 20) advice = 'Strong winds expected. Avoid spraying pesticides.';
+
+                setWeather({
+                    temp: `${temp}°C`,
+                    rain: `${rainProb}%`,
+                    wind: `${wind} km/h`,
+                    condition: conditionStr,
+                    advice: advice
+                });
+
+                // Generate Tasks Dynamically based on rules
+                const generatedTasks = [];
+                let idCount = 1;
+
+                if (temp > 30) {
+                    generatedTasks.push({ id: idCount++, title: 'Irrigate crops in evening', time: '6:00 PM', done: false });
+                }
+                
+                if (rainProb > 50) {
+                    generatedTasks.push({ id: idCount++, title: 'Avoid irrigation today', time: 'All Day', done: false });
+                }
+                
+                const hasLowHealth = cropHealth.some(c => c.health < 80);
+                if (hasLowHealth) {
+                    generatedTasks.push({ id: idCount++, title: 'Inspect crops for disease', time: 'Morning', done: false });
+                }
+                
+                const soilMoisture = 25; // mock low moisture
+                if (soilMoisture < 30) {
+                    generatedTasks.push({ id: idCount++, title: 'Check irrigation system', time: 'ASAP', done: false });
+                }
+
+                if (generatedTasks.length === 0) {
+                    generatedTasks.push({ id: idCount++, title: t('dashboard.home.inspectLeaves') || 'Inspect crops', time: 'Today', done: false });
+                }
+
+                setTasks(generatedTasks);
+            } catch (error) {
+                console.error("Failed to fetch smart data:", error);
+            }
+        }
+        fetchSmartData();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []);
 
     // Urgent Alerts
     const alerts = [
@@ -61,11 +133,7 @@ export default function FarmerHomePage() {
     ];
 
     // Today's Tasks
-    const tasks = [
-        { id: 1, title: t('dashboard.home.irrigateWheat'), time: '4:00 PM', done: false },
-        { id: 2, title: t('dashboard.home.applyFertilizer'), time: t('nav.todayAdvice'), done: false },
-        { id: 3, title: t('dashboard.home.inspectLeaves'), time: t('nav.todayAdvice'), done: true },
-    ];
+    // Replaced by dynamic tasks block
 
     // Recent Activity
     const activities = [
@@ -149,7 +217,7 @@ export default function FarmerHomePage() {
                     </div>
                     <div className="bg-white/70 p-3 rounded-lg border border-white flex items-start gap-2 shadow-sm">
                         <Leaf className="text-agri-green mt-0.5" size={18} />
-                        <span className="text-sm font-bold text-gray-800">{t('dashboard.home.advice')}: <span className="font-semibold text-gray-700">{t('weather.alertDesc')}</span></span>
+                        <span className="text-sm font-bold text-gray-800">{t('dashboard.home.advice')}: <span className="font-semibold text-gray-700">{weather.advice}</span></span>
                     </div>
                 </motion.div>
             </div>

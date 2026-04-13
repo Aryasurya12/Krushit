@@ -44,6 +44,105 @@ export default function CropDetailsDashboard() {
     const router = useRouter();
     const { t } = useTranslation();
     const [crop, setCrop] = useState<Crop | null>(null);
+    const [timeline, setTimeline] = useState<any[]>([]);
+
+    useEffect(() => {
+        if (!crop) return;
+
+        const generatedTimeline = [];
+        const today = new Date();
+        const formatDate = (daysAgo: number) => {
+            const d = new Date(today);
+            d.setDate(d.getDate() - daysAgo);
+            return d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
+        };
+
+        // 1. Latest Health Event (0 days ago) based on real score
+        if (crop.health_score < 80) {
+            generatedTimeline.push({
+                date: formatDate(0),
+                score: crop.health_score,
+                disease: 'Disease Detected (Leaf Rust)',
+                reco: 'Suggest treatment: Apply appropriate fungicide immediately.',
+                color: 'red',
+                dot: 'bg-red-500'
+            });
+        } else if (crop.health_score > 85) {
+            generatedTimeline.push({
+                date: formatDate(0),
+                score: crop.health_score,
+                disease: 'Healthy',
+                reco: 'Crop is in good condition without significant issues.',
+                color: 'blue',
+                dot: 'bg-blue-500'
+            });
+        } else {
+            // Neutral/Minor issues
+            generatedTimeline.push({
+                date: formatDate(0),
+                score: crop.health_score,
+                disease: 'Moderate Stress',
+                reco: 'Monitor crop. Apply micronutrients if required.',
+                color: 'amber',
+                dot: 'bg-amber-500'
+            });
+        }
+
+        // 2. Environmental Stress Events (2 days ago)
+        let prevScore = crop.health_score + (crop.health_score < 80 ? 6 : -4);
+        if (crop.water_req === 'Required' || crop.water_req === 'High') {
+            generatedTimeline.push({
+                date: formatDate(2),
+                score: prevScore,
+                disease: 'Water Stress',
+                reco: 'Soil moisture levels are low. Immediate irrigation recommended.',
+                color: 'amber',
+                dot: 'bg-amber-500'
+            });
+        } else {
+            generatedTimeline.push({
+                date: formatDate(2),
+                score: prevScore,
+                disease: 'Heat Stress',
+                reco: 'High temperature (>35°C) affecting crop slightly.',
+                color: 'amber',
+                dot: 'bg-amber-500'
+            });
+        }
+
+        // 3. Growth Stage Update (5 days ago)
+        prevScore = prevScore + 3;
+        generatedTimeline.push({
+            date: formatDate(5),
+            score: prevScore,
+            disease: 'Stage Update',
+            reco: `Crop entered ${crop.stage} stage. Nutrient adjustments made.`,
+            color: 'blue',
+            dot: 'bg-blue-500'
+        });
+
+        // 4. Recovery & Past Events (10/14 days ago)
+        if (crop.health_score >= 80) {
+            generatedTimeline.push({
+                date: formatDate(10),
+                score: prevScore - 12,
+                disease: 'Recovered',
+                reco: 'Crop condition improved after timely treatment.',
+                color: 'green',
+                dot: 'bg-green-500'
+            });
+            generatedTimeline.push({
+                date: formatDate(14),
+                score: prevScore - 25,
+                disease: 'Disease Detected',
+                reco: 'Initial outbreak observed. Treatment started.',
+                color: 'red',
+                dot: 'bg-red-500'
+            });
+        }
+
+        setTimeline(generatedTimeline);
+    }, [crop]);
 
     useEffect(() => {
         if (id && mockCropsData[id as string]) {
@@ -79,49 +178,144 @@ export default function CropDetailsDashboard() {
     const generateReport = () => {
         const doc = new jsPDF();
 
-        doc.setFontSize(20);
-        doc.text(`Crop Report: ${crop?.name} (${crop?.variety})`, 14, 22);
+        // SECTION 1: HEADER
+        doc.setFontSize(22);
+        doc.setTextColor(16, 185, 129); // Agri Green
+        doc.text('Krushit Crop Health Report', 14, 22);
 
-        doc.setFontSize(12);
-        doc.text(`Report Generated On: ${new Date().toLocaleDateString()}`, 14, 32);
+        doc.setFontSize(14);
+        doc.setTextColor(60, 60, 60);
+        doc.text(`${crop?.name} (${crop?.variety})`, 14, 30);
 
+        doc.setFontSize(10);
+        doc.setTextColor(120, 120, 120);
+        doc.text(`Report Generated On: ${new Date().toLocaleDateString()}`, 14, 38);
+
+        // SECTION 2: BASIC CROP DETAILS
         autoTable(doc, {
-            startY: 40,
-            head: [['Detail', 'Information']],
+            startY: 46,
+            head: [['Basic Crop Details', 'Information']],
             body: [
                 ['Crop Name', crop.name],
                 ['Variety', crop.variety],
                 ['Area', crop.area],
                 ['Planted Date', crop.planted],
                 ['Days Since Sowing', `${daysSinceSowing} days`],
-                ['Farm Location', crop.location],
+                ['Location', crop.location],
                 ['Soil Type', crop.soil_type],
                 ['Irrigation Type', crop.irrigation_type],
-                ['Current Stage', crop.stage],
+            ],
+            theme: 'grid',
+            headStyles: { fillColor: [16, 185, 129], textColor: 255, fontStyle: 'bold' },
+            bodyStyles: { textColor: 50 },
+            alternateRowStyles: { fillColor: [249, 250, 251] },
+        });
+
+        // SECTION 3: HEALTH SUMMARY
+        const yHealth = (doc as any).lastAutoTable.finalY + 12;
+        doc.setFontSize(14);
+        doc.setTextColor(40, 40, 40);
+        doc.text('Health Summary', 14, yHealth);
+
+        autoTable(doc, {
+            startY: yHealth + 4,
+            head: [['Metric', 'Current Status']],
+            body: [
                 ['Health Score', `${crop.health_score} / 100`],
+                ['Crop Stage', crop.stage],
                 ['Water Requirement', crop.water_req],
                 ['Risk Level', crop.risk]
             ],
             theme: 'grid',
-            headStyles: { fillColor: [16, 185, 129] } // Agri Green
+            headStyles: { fillColor: [59, 130, 246], textColor: 255 }, // Blue header
+            bodyStyles: { textColor: 50 },
         });
 
+        // SECTION 4: DISEASE ANALYSIS
+        const isSick = crop.health_score < 80;
+        const diseaseName = isSick ? 'Leaf Rust' : 'None Detected';
+        const confidence = isSick ? '92.4%' : 'N/A';
+        const severity = isSick ? 'Critical' : 'Normal';
+
+        const yDisease = (doc as any).lastAutoTable.finalY + 12;
         doc.setFontSize(14);
-        doc.text('Recent Health Timeline', 14, (doc as any).lastAutoTable.finalY + 15);
+        doc.setTextColor(40, 40, 40);
+        doc.text('Disease Analysis', 14, yDisease);
 
         autoTable(doc, {
-            startY: (doc as any).lastAutoTable.finalY + 20,
-            head: [['Date', 'Health Score', 'Disease Detected', 'Status']],
+            startY: yDisease + 4,
+            head: [['Analysis Item', 'Result']],
             body: [
-                ['12 March', '88', 'None', 'Healthy'],
-                ['18 March', '81', 'Leaf Rust', 'Needs Attention'],
-                ['25 March', '90', 'Recovered', 'Healthy']
+                ['Disease Detected', diseaseName],
+                ['Confidence (%)', confidence],
+                ['Severity Level', severity]
             ],
-            theme: 'striped',
-            headStyles: { fillColor: [59, 130, 246] }
+            theme: 'grid',
+            headStyles: { fillColor: isSick ? [239, 68, 68] : [16, 185, 129] }, // Red if sick, Green if healthy
+            bodyStyles: { textColor: 50 },
         });
 
-        doc.save(`${crop.name}_Report_${new Date().getTime()}.pdf`);
+        // SECTION 5: TREATMENT PLAN
+        const cause = isSick ? 'High humidity prolonged leaf wetness, enabling fungal spore germination.' : 'N/A';
+        const treatment = isSick ? 'Apply Propiconazole fungicide spray early morning.' : 'Maintain current agricultural practices.';
+        const prevention = isSick ? 'Ensure proper plant spacing for better aeration.' : 'Continue routine scouting and preventive care.';
+        const fertilizer = isSick ? 'Avoid excessive Nitrogen; ensure adequate Potassium.' : 'Apply balanced NPK as scheduled.';
+
+        const yTreatment = (doc as any).lastAutoTable.finalY + 12;
+        
+        let startYAfterCheck = yTreatment;
+        if (yTreatment > 240) {
+            doc.addPage();
+            startYAfterCheck = 20;
+        }
+
+        doc.setFontSize(14);
+        doc.setTextColor(40, 40, 40);
+        doc.text('Treatment Plan', 14, startYAfterCheck);
+
+        autoTable(doc, {
+            startY: startYAfterCheck + 4,
+            head: [['Action Pillar', 'Recommendation']],
+            body: [
+                ['Cause', cause],
+                ['Treatment', treatment],
+                ['Prevention', prevention],
+                ['Fertilizer Recommendation', fertilizer],
+            ],
+            theme: 'grid',
+            headStyles: { fillColor: [245, 158, 11] }, // Amber header
+            columnStyles: { 0: { cellWidth: 50 } },
+            bodyStyles: { textColor: 50 },
+        });
+
+        // SECTION 6: HEALTH TIMELINE
+        const yTimeline = (doc as any).lastAutoTable.finalY + 12;
+        
+        let timelineStartY = yTimeline;
+        if (yTimeline > 220) {
+            doc.addPage();
+            timelineStartY = 20;
+        }
+
+        doc.setFontSize(14);
+        doc.setTextColor(40, 40, 40);
+        doc.text('Health Timeline History', 14, timelineStartY);
+
+        autoTable(doc, {
+            startY: timelineStartY + 4,
+            head: [['Date', 'Health Score', 'Disease Detected', 'Status']],
+            body: timeline.map(item => [
+                item.date, 
+                `${item.score}`, 
+                item.disease, 
+                item.reco
+            ]),
+            theme: 'striped',
+            headStyles: { fillColor: [139, 92, 246] }, // Purple header
+            bodyStyles: { textColor: 50 },
+        });
+
+        doc.save(`Krushit_Report_${crop.name}_${new Date().getTime()}.pdf`);
     };
 
     return (
@@ -276,16 +470,13 @@ export default function CropDetailsDashboard() {
                         </div>
 
                         <div className="space-y-6 relative before:absolute before:inset-0 before:ml-5 before:-translate-x-px md:before:mx-auto md:before:translate-x-0 before:h-full before:w-0.5 before:bg-gradient-to-b before:from-transparent before:via-gray-200 before:to-transparent">
-                            {[
-                                { date: '25 March', score: 90, disease: 'Recovered', reco: 'Continue maintaining current irrigation level.', color: 'green', dot: 'bg-green-500' },
-                                { date: '18 March', score: 81, disease: 'Leaf Rust Detected', reco: 'Apply propiconazole fungicide immediately.', color: 'red', dot: 'bg-red-500' },
-                                { date: '12 March', score: 88, disease: 'None', reco: 'Crop is healthy. Applied standard NPK fertilizer.', color: 'blue', dot: 'bg-blue-500' },
-                            ].map((item, idx) => (
+                            {timeline.map((item, idx) => (
                                 <div key={idx} className="relative flex items-center justify-between md:justify-normal md:odd:flex-row-reverse group">
                                     <div className={`flex items-center justify-center w-10 h-10 rounded-full border-4 border-white ${item.dot} shadow shrink-0 md:order-1 md:group-odd:-translate-x-1/2 md:group-even:translate-x-1/2 z-10`}>
                                         {item.color === 'green' && <Sprout size={16} className="text-white" />}
                                         {item.color === 'red' && <ShieldAlert size={16} className="text-white" />}
-                                        {item.color === 'blue' && <Camera size={16} className="text-white" />}
+                                        {item.color === 'blue' && <Activity size={16} className="text-white" />}
+                                        {item.color === 'amber' && <Thermometer size={16} className="text-white" />}
                                     </div>
                                     <div className="w-[calc(100%-4rem)] md:w-[calc(50%-2.5rem)] bg-gray-50 p-4 rounded-xl border border-gray-100 shadow-sm hover:shadow-md transition-shadow">
                                         <div className="flex items-center justify-between mb-1">

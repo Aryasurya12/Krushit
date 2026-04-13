@@ -1,10 +1,11 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import FarmerDashboardLayout from '@/components/FarmerDashboardLayout';
 import { useTranslation } from 'react-i18next';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Search, Filter, ExternalLink, X, FileText, CheckCircle, Info, Landmark, Bell } from 'lucide-react';
+import { Search, Filter, ExternalLink, X, FileText, CheckCircle, Info, Landmark, Bell, Star } from 'lucide-react';
+import { cropsApi } from '@/lib/api';
 
 export default function SchemesPage() {
     const { t } = useTranslation();
@@ -12,6 +13,25 @@ export default function SchemesPage() {
     const [selectedCategory, setSelectedCategory] = useState('all');
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const [selectedScheme, setSelectedScheme] = useState<any | null>(null);
+    const [crops, setCrops] = useState<any[]>([]);
+
+    useEffect(() => {
+        const loadCrops = async () => {
+            try {
+                const data = await cropsApi.getAll();
+                setCrops(data || []);
+            } catch (err) {
+                console.warn("Failed to fetch crops, using defaults", err);
+            }
+        };
+        loadCrops();
+    }, []);
+
+    // Generate Farmer Profile from crops
+    const farmSize = crops.reduce((acc, c) => acc + (parseFloat(c.area) || 1), 0) || 3.5; // default 3.5 acres
+    const hasHealthConcerns = crops.some(c => c.health_score < 80);
+    const hasIrrigationIssues = crops.some(c => c.water_req === 'High' && c.irrigation_type.toLowerCase().includes('rain'));
+    const cropNames = crops.map(c => c.name.toLowerCase());
 
     const categoriesList = [
         { id: 'all', label: t('schemes.filterCategory') },
@@ -29,7 +49,44 @@ export default function SchemesPage() {
     // Provide a fallback mostly mapped array if the translation hook hasn't returned objects fully yet
     const safeSchemesList = Array.isArray(schemesList) ? schemesList : [];
 
-    const filteredSchemes = safeSchemesList.filter(scheme => {
+    // Analyze and Personalize each scheme
+    const personalizedSchemes = safeSchemesList.map(scheme => {
+        const textToAnalyze = (scheme.name + " " + scheme.shortDesc + " " + (scheme.eligibility || "")).toLowerCase();
+        let relevanceScore = 0;
+        let eligibility = 'Eligible ✅';
+
+        // 1. Eligibility Logic
+        if (textToAnalyze.includes('small and marginal') && farmSize > 5) {
+            eligibility = 'Not Eligible ❌';
+        } else if (textToAnalyze.includes('marginal') && farmSize > 2.5 && farmSize <= 5) {
+            eligibility = 'Partially Eligible ⚠️';
+        }
+
+        // 2. Personalization Scoring
+        if (eligibility !== 'Not Eligible ❌') {
+            if (farmSize <= 5 && textToAnalyze.includes('kisan')) relevanceScore += 10;
+            if (hasHealthConcerns && textToAnalyze.includes('insurance')) relevanceScore += 8;
+            if (hasHealthConcerns && textToAnalyze.includes('soil')) relevanceScore += 6;
+            if (hasIrrigationIssues && textToAnalyze.includes('irrigation')) relevanceScore += 8;
+            if (textToAnalyze.includes('sinchai')) relevanceScore += hasIrrigationIssues ? 10 : 3;
+            // Match specific crops
+            cropNames.forEach(c => {
+                if (textToAnalyze.includes(c)) relevanceScore += 5;
+            });
+        }
+
+        // 3. Priority Tagging
+        let priorityTag = 'General';
+        if (relevanceScore >= 10) priorityTag = 'High Priority';
+        else if (relevanceScore >= 5) priorityTag = 'Recommended for You';
+
+        return { ...scheme, relevanceScore, eligibility, priorityTag };
+    });
+
+    // Sort by relevance (highest first)
+    personalizedSchemes.sort((a, b) => b.relevanceScore - a.relevanceScore);
+
+    const filteredSchemes = personalizedSchemes.filter(scheme => {
         const matchesSearch = scheme.name?.toLowerCase().includes(searchTerm.toLowerCase()) || 
                               scheme.shortDesc?.toLowerCase().includes(searchTerm.toLowerCase());
         const matchesCategory = selectedCategory === 'all' || scheme.category === selectedCategory;
@@ -95,10 +152,19 @@ export default function SchemesPage() {
                                 >
                                     <div className="p-6 flex-1 flex flex-col">
                                         <div className="flex justify-between items-start mb-4">
-                                            <span className="inline-block px-3 py-1 bg-[#EEF5F0] text-[#2F6B4A] text-xs font-bold rounded-md border border-[#D5E6DC] uppercase tracking-wide">
-                                                {t(`schemes.categories.${scheme.category}`)}
-                                            </span>
-                                            <div className="w-8 h-8 rounded-full bg-gray-50 flex items-center justify-center text-gray-400 group-hover:bg-[#EEF5F0] group-hover:text-agri-green transition-colors">
+                                            <div className="flex flex-wrap gap-2">
+                                                <span className="inline-block px-3 py-1 bg-[#EEF5F0] text-[#2F6B4A] text-xs font-bold rounded-md border border-[#D5E6DC] uppercase tracking-wide">
+                                                    {t(`schemes.categories.${scheme.category}`)}
+                                                </span>
+                                                {scheme.priorityTag !== 'General' && (
+                                                    <span className={`inline-block px-3 py-1 text-xs font-bold rounded-md border uppercase tracking-wide flex items-center gap-1 ${
+                                                        scheme.priorityTag === 'High Priority' ? 'bg-red-50 text-red-600 border-red-100' : 'bg-amber-50 text-amber-600 border-amber-100'
+                                                    }`}>
+                                                        <Star size={12} fill="currentColor" /> {scheme.priorityTag}
+                                                    </span>
+                                                )}
+                                            </div>
+                                            <div className="w-8 h-8 rounded-full bg-gray-50 flex items-center justify-center text-gray-400 group-hover:bg-[#EEF5F0] group-hover:text-agri-green transition-colors shrink-0">
                                                 <ExternalLink size={16} />
                                             </div>
                                         </div>
@@ -113,7 +179,14 @@ export default function SchemesPage() {
                                         </div>
                                     </div>
                                     <div className="px-6 py-4 border-t border-gray-50 bg-gray-50/50 flex justify-between items-center">
-                                        <span className="text-sm font-bold text-agri-green flex items-center gap-1.5">
+                                        <span className={`text-[11px] font-bold px-2 py-1 rounded border uppercase ${
+                                            scheme.eligibility.includes('Not') ? 'bg-gray-100 text-gray-500 border-gray-200' :
+                                            scheme.eligibility.includes('Partially') ? 'bg-amber-50 text-amber-600 border-amber-100' :
+                                            'bg-green-50 text-green-700 border-green-200'
+                                        }`}>
+                                            {scheme.eligibility}
+                                        </span>
+                                        <span className="text-sm font-bold text-agri-green flex items-center gap-1.5 ml-auto">
                                             {t('schemes.viewDetails')} 
                                             <span className="group-hover:translate-x-1 transition-transform inline-block">→</span>
                                         </span>
