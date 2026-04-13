@@ -808,6 +808,7 @@ async def predict_disease(file: UploadFile = File(...), language: str = "en"):
         # 11. Return — exact fields the frontend expects
         return {
             "disease":    display_name,
+            "raw_class":  class_label,
             "confidence": round(confidence, 2),
             "severity":   severity,
             "cause":      info["cause"],

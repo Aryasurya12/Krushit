@@ -51,7 +51,7 @@ export default function WeatherPage() {
                 const data = await cropsApi.getAll();
                 setCrops(data || []);
             } catch (err) {
-                console.error("Failed to fetch crops:", err);
+                console.warn("Could not load crops for weather:", err);
             } finally {
                 setLoading(false);
             }

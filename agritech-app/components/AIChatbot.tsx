@@ -34,7 +34,7 @@ export default function AIChatbot() {
     useEffect(() => {
         const fetchCrops = async () => {
             try {
-                const res = await fetch('http://127.0.0.1:8001/crops');
+                const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8001'}/crops`);
                 if (res.ok) {
                     const data = await res.json();
                     setAllCrops(data);
@@ -310,7 +310,7 @@ export default function AIChatbot() {
     const getAIResponse = async (userMessage: string, historyPayload: any[], user_language: string): Promise<string> => {
         try {
             console.log('🤖 Sending message to AI Backend (Port 8001)...');
-            const response = await fetch('http://127.0.0.1:8001/chat', {
+            const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8001'}/chat`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',

@@ -106,7 +106,7 @@ export default function CommunityPage() {
             // Refresh the page to show new marker (or use state management)
             window.location.reload();
         } catch (err) {
-            console.error('Error submitting report:', err);
+            console.warn('Error submitting report:', err);
             alert(t('community.fail'));
         } finally {
             setIsSubmitting(false);

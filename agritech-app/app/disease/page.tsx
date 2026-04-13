@@ -167,7 +167,7 @@ export default function ScanCropPage() {
             formData.append('file', selectedFile);
 
             // 2. Send to FastAPI ML Backend
-            const response = await fetch(`http://127.0.0.1:8001/predict?language=${i18n.language}`, {
+            const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8001'}/predict?language=${i18n.language}`, {
                 method: 'POST',
                 body: formData,
             });
@@ -190,7 +190,7 @@ export default function ScanCropPage() {
                 treatment: data.treatment,
                 prevention: data.prevention,
                 fertilizer: data.fertilizer,
-                rawClass: data.disease // Ensure the raw class is stored for protocol lookup
+                rawClass: data.raw_class || data.disease // Ensure the raw class is stored for protocol lookup
             });
 
             // Trigger Notification
@@ -199,6 +199,26 @@ export default function ScanCropPage() {
                 t('scan.scanDetectedDesc', { confidence: data.confidence }),
                 'ai'
             );
+
+            // AUTO-SAVE to database (as per requirement)
+            if (user && selectedCropId) {
+                try {
+                    await supabase.from('disease_scans').insert({
+                        user_id: user.id,
+                        crop_id: selectedCropId,
+                        disease_detected: data.disease,
+                        confidence: data.confidence,
+                        severity: (data.severity as string).toLowerCase(),
+                        image_url: selectedImage || '',
+                        treatment: data.treatment || '',
+                        prevention: data.prevention || '',
+                        health_score: data.disease.toLowerCase().includes('healthy') ? 95 : Math.max(20, 95 - data.confidence * 0.8)
+                    });
+                    fetchHistory();
+                } catch (saveErr) {
+                    console.warn("Auto-save failed:", saveErr);
+                }
+            }
         } catch (error: any) { // eslint-disable-line @typescript-eslint/no-explicit-any
             console.error('Scan error:', error);
             setResult({
@@ -215,26 +235,6 @@ export default function ScanCropPage() {
             });
         } finally {
             setAnalyzing(false);
-
-            // AUTO-SAVE to database (as per requirement)
-            if (user && selectedCropId) {
-                try {
-                    await supabase.from('disease_scans').insert({
-                        user_id: user.id,
-                        crop_id: selectedCropId,
-                        disease_detected: result.disease,
-                        confidence: result.confidence,
-                        severity: result.severity,
-                        image_url: selectedImage || '',
-                        treatment: result.treatment || '',
-                        prevention: result.prevention || '',
-                        health_score: result.disease === 'Healthy' ? 95 : (95 - result.confidence * 0.5)
-                    });
-                    fetchHistory();
-                } catch (saveErr) {
-                    console.warn("Auto-save failed:", saveErr);
-                }
-            }
         }
     };
 
