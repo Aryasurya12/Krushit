@@ -46,20 +46,36 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     const fetchProfile = useCallback(async (userId: string) => {
         try {
-            // Check 'users' table (KRUSHIT standard)
-            const { data, error } = await supabase
+            // 1. Fetch profile from 'users' table
+            const { data: profileData, error: profileError } = await supabase
                 .from('users')
                 .select('*')
                 .eq('id', userId)
                 .single();
 
-            if (error) {
-                // Silently return, use user_metadata as fallback in UI
+            // 2. Fetch role from 'user_roles' table (New RBAC system)
+            const { data: roleData, error: roleError } = await supabase
+                .from('user_roles')
+                .select('role')
+                .eq('user_id', userId)
+                .single();
+
+            if (profileError && !roleData) {
                 return;
             }
-            setProfile(data);
+
+            const mergedProfile = {
+                ...(profileData || {}),
+                role: roleData?.role || profileData?.role || 'farmer'
+            };
+
+            setProfile(mergedProfile);
+            
+            if (mergedProfile.role) {
+                localStorage.setItem('user_role', mergedProfile.role);
+            }
         } catch (err) {
-            // Never throw from a background data fetch
+            console.error("AuthContext fetchProfile error:", err);
         }
     }, []);
 
@@ -101,27 +117,46 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }, [fetchProfile]);
 
     const signIn = useCallback(async (email: string, password: string) => {
-
         try {
             const { data, error } = await supabase.auth.signInWithPassword({
                 email,
-                password,
+                password
             });
-            
+
             if (error) {
-                console.error("Supabase Login Error:", error.message, error.status);
-                return { user: null, profile: null, error };
+                return { error: { message: error.message } };
             }
 
-            console.log("Supabase Login Success for:", data.user?.email);
-            // Re-fetch to wait for profile
-            const { data: profile } = await supabase.from('users').select('*').eq('id', data.user.id).single();
-            return { user: data.user, profile, error: null };
+            // Fetch profile immediately to ensure redirection data is available
+            let profileData = null;
+            if (data.user) {
+                // Fetch from both tables
+                const [profileRes, roleRes] = await Promise.all([
+                    supabase.from('users').select('*').eq('id', data.user.id).single(),
+                    supabase.from('user_roles').select('role').eq('user_id', data.user.id).single()
+                ]);
+
+                profileData = {
+                    ...(profileRes.data || {}),
+                    role: roleRes.data?.role || profileRes.data?.role || 'farmer'
+                };
+                
+                setProfile(profileData);
+                if (profileData.role) {
+                    localStorage.setItem('user_role', profileData.role);
+                }
+            }
+
+            return { 
+                user: data.user, 
+                profile: profileData, 
+                error: null 
+            };
         } catch (err: any) {
             console.error("Authentication Service Exception:", err);
-            return { user: null, profile: null, error: { message: 'Authentication Service Unavailable or CORS block' } };
+            return { user: null, profile: null, error: { message: 'Authentication Service Unavailable' } };
         }
-    }, [fetchProfile]);
+    }, [setProfile]);
 
     const signUp = useCallback(async (email: string, password: string, metadata: any) => {
         try {
@@ -138,18 +173,21 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                 return { error };
             }
 
-            // Fallback: If trigger is missing, manually insert into 'users' table
+            // Fallback: If trigger is missing, manually insert into 'users' and 'user_roles' tables
             if (data.user) {
-                const { error: profileError } = await supabase.from('users').insert({
-                    id: data.user.id,
-                    email: data.user.email,
-                    full_name: metadata.full_name || 'New Farmer',
-                    language: metadata.language || 'en',
-                    role: 'farmer'
-                });
-                if (profileError) {
-                    console.warn("Manual profile insert failed (might already exist or RLS block):", profileError.message);
-                }
+                await Promise.all([
+                    supabase.from('users').insert({
+                        id: data.user.id,
+                        email: data.user.email,
+                        full_name: metadata.full_name || 'New Farmer',
+                        language: metadata.language || 'en',
+                        role: 'farmer'
+                    }),
+                    supabase.from('user_roles').insert({
+                        user_id: data.user.id,
+                        role: 'farmer'
+                    })
+                ]);
             }
 
             return { error: null };
@@ -164,9 +202,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         setUser(null);
         setProfile(null);
         setSession(null);
-        localStorage.removeItem('i18nextLng'); // Clear lang preference on logout? (Optional)
+        localStorage.removeItem('user_role'); // CRITICAL: Clear role on logout
         router.push('/');
-    }, [router, user]);
+    }, [router]);
 
     const updateProfile = useCallback(async (data: any) => {
         if (!user) return { error: { message: 'No user authenticated' } };

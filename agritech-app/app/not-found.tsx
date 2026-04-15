@@ -17,7 +17,7 @@ export default function NotFound() {
                     The page you&apos;re looking for doesn&apos;t exist or has been moved.
                 </p>
                 <div className="flex flex-col sm:flex-row gap-4 justify-center">
-                    <Link href="/dashboard-farmer">
+                    <Link href="/farmer-dashboard">
                         <button className="btn-primary">
                             Go to Dashboard
                         </button>

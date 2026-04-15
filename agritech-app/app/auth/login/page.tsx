@@ -26,35 +26,27 @@ export default function LoginPage() {
         const normalizedEmail = email.trim().toLowerCase();
 
         try {
-            const { user, profile, error } = await signIn(email, password);
+            const { profile, error } = await signIn(email, password);
+            
             if (error) {
-                // Final fallback if the context didn't catch it
-                if (normalizedEmail.endsWith('@krushit.com')) {
-                    if (normalizedEmail.includes('admin')) {
-                        router.push('/admin-dashboard');
-                    } else {
-                        router.push('/dashboard-farmer');
-                    }
-                    return;
-                }
                 setError(typeof error === 'string' ? error : error.message || t('common.error'));
-            } else {
-                if (profile?.role === 'admin' || profile?.is_admin) {
-                    router.push('/admin-dashboard');
-                } else {
-                    router.push('/dashboard-farmer');
-                }
-            }
-        } catch (err: unknown) {
-            if (mockEmails.includes(normalizedEmail) && password === 'demo123') {
-                router.push('/dashboard-farmer');
                 return;
             }
-            if (err instanceof Error) {
-                setError(err.message);
+
+            // Role-based redirection
+            console.log("Logged in role:", profile?.role);
+            
+            if (profile?.role === 'admin') {
+                router.push('/admin-dashboard');
+            } else if (profile?.role === 'farmer') {
+                router.push('/farmer-dashboard');
             } else {
-                setError(t('common.error'));
+                console.warn("User role missing or invalid:", profile?.role);
+                setError("Account role not initialized. Please contact support.");
             }
+        } catch (err: unknown) {
+            console.error("Login component error:", err);
+            setError(t('common.error'));
         } finally {
             setLoading(false);
         }
@@ -171,7 +163,7 @@ export default function LoginPage() {
                                 try {
                                     // Defaulting to Ramesh for the user
                                     await signIn('ramesh@krushit.com', 'demo123');
-                                    router.push('/dashboard-farmer');
+                                    router.push('/farmer-dashboard');
                                 } finally {
                                     setLoading(false);
                                 }

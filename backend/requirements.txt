@@ -8,3 +8,6 @@ h5py
 google-generativeai
 python-dotenv
 supabase
+pandas
+joblib
+scikit-learn

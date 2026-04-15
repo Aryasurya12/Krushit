@@ -11,7 +11,7 @@ export default function AdminLoginPage() {
     const [password, setPassword] = useState('');
     const [error, setError] = useState<string | null>(null);
     const [loading, setLoading] = useState(false);
-    const { signIn, profile } = useAuth();
+    const { signIn, signOut } = useAuth();
     const router = useRouter();
 
     const handleLogin = async (e: React.FormEvent) => {
@@ -20,15 +20,17 @@ export default function AdminLoginPage() {
         setError(null);
 
         try {
-            const { error: signInError } = await signIn(email, password);
+            const { profile: userProfile, error: signInError } = await signIn(email, password);
             if (signInError) throw signInError;
 
-            // Simple check: In a real app, we'd wait for profile to update
-            // For now, if it's a @krushit.com admin email, we allow it in demo mode
-            if (email.toLowerCase().includes('admin')) {
+            // Role-based check (consistent with main login)
+            const userRole = userProfile?.role || localStorage.getItem('user_role');
+            
+            if (userRole === 'admin') {
                 router.push('/admin-dashboard');
             } else {
                 setError('Access Denied: You do not have administrator privileges.');
+                await signOut();
             }
         } catch (err: any) {
             setError(err.message || 'Invalid credentials. Please try again.');

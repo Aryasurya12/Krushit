@@ -10,6 +10,8 @@ import numpy as np
 import google.generativeai as genai
 from dotenv import load_dotenv
 from typing import List, Dict
+import joblib
+import pandas as pd
 
 # Load env variables
 load_dotenv()
@@ -75,6 +77,25 @@ class GrowthLogCreate(BaseModel):
     leaf_count: int = None
     notes: str = None
     image_url: str = None
+
+# LoginRequest removed - using direct client-side auth
+
+
+class IrrigationRequest(BaseModel):
+    Soil_Type: str
+    Soil_Moisture: float
+    Temperature_C: float
+    Humidity: float
+    Rainfall_mm: float
+    Sunlight_Hours: float
+    Wind_Speed_kmh: float
+    Crop_Type: str
+    Crop_Growth_Stage: str
+    Season: str
+    Irrigation_Type: str
+    Field_Area_hectare: float
+    Previous_Irrigation_mm: float
+    Region: str
 
 # Internal imports
 from models.translations import get_local_translation
@@ -155,6 +176,34 @@ try:
 except Exception as e:
     print(f"Failed to load ML model: {e}")
     ml_model = None
+
+# ──────────────────────────────────────────────────────────────────────────────
+# 3.5 Load Irrigation ML Models
+# ──────────────────────────────────────────────────────────────────────────────
+MODELS_DIR     = os.path.join(BASE_DIR, "models")
+IRR_MODEL_PATH = os.path.join(MODELS_DIR, "irrigation_model_v2.pkl")
+FE_PATH        = os.path.join(MODELS_DIR, "feature_encoders.pkl")
+TE_PATH        = os.path.join(MODELS_DIR, "target_encoder.pkl")
+FC_PATH        = os.path.join(MODELS_DIR, "feature_columns.pkl")
+
+irr_model = None
+feature_encoders = None
+target_encoder = None
+feature_columns = None
+
+print(f"Loading Irrigation models from {MODELS_DIR}...")
+try:
+    if all(os.path.exists(p) for p in [IRR_MODEL_PATH, FE_PATH, TE_PATH, FC_PATH]):
+        irr_model = joblib.load(IRR_MODEL_PATH)
+        feature_encoders = joblib.load(FE_PATH)
+        target_encoder = joblib.load(TE_PATH)
+        feature_columns = joblib.load(FC_PATH)
+        print("Irrigation prediction system: READY")
+    else:
+        missing = [p for p in [IRR_MODEL_PATH, FE_PATH, TE_PATH, FC_PATH] if not os.path.exists(p)]
+        print(f"Warning: Missing irrigation files: {[os.path.basename(m) for m in missing]}")
+except Exception as e:
+    print(f"Failed to load Irrigation system: {e}")
 
 # ──────────────────────────────────────────────────────────────────────────────
 # 4. Disease info database — all 22 classes from class_names.json
@@ -562,6 +611,13 @@ async def get_notifications(user_id: str):
     return res.data
 
 # ──────────────────────────────────────────────────────────────────────────────
+# 8.5 Auth & Role Endpoints
+# ──────────────────────────────────────────────────────────────────────────────
+
+# Auth endpoints removed - migrated to standard Supabase client flow.
+
+
+# ──────────────────────────────────────────────────────────────────────────────
 # 9. Crop Growth Analytics
 # ──────────────────────────────────────────────────────────────────────────────
 
@@ -574,9 +630,53 @@ async def log_growth(log: GrowthLogCreate):
 
 @app.get("/crops/{crop_id}/history")
 async def get_crop_history(crop_id: str):
-    if not supabase: return []
     res = supabase.table("growth_logs").select("*").eq("crop_id", crop_id).order("log_date").execute()
     return res.data
+
+# ──────────────────────────────────────────────────────────────────────────────
+# 9.5 Irrigation Intelligence
+# ──────────────────────────────────────────────────────────────────────────────
+
+@app.post("/predict-irrigation")
+async def predict_irrigation(request: IrrigationRequest):
+    """
+    Predict high-precision irrigation levels using Random Forest.
+    """
+    if irr_model is None or feature_encoders is None or target_encoder is None or feature_columns is None:
+        raise HTTPException(
+            status_code=503, 
+            detail="Irrigation ML service is down (Model files not loaded)."
+        )
+
+    try:
+        # 1. Prepare data
+        df = pd.DataFrame([request.dict()])
+
+        # 2. Sequential Encoding
+        categorical_cols = ["Soil_Type", "Crop_Type", "Crop_Growth_Stage", "Season", "Irrigation_Type", "Region"]
+        for col in categorical_cols:
+            if col in feature_encoders:
+                le = feature_encoders[col]
+                val = str(df[col].iloc[0])
+                if hasattr(le, 'transform'):
+                    # Handle unknown with fallback
+                    if val in le.classes_:
+                        df[col] = le.transform([val])
+                    else:
+                        df[col] = le.transform([le.classes_[0]])
+
+        # 3. Predict with consistent columns
+        df = df[feature_columns]
+        prediction = irr_model.predict(df)
+
+        # 4. Decode
+        irrigation_level = target_encoder.inverse_transform(prediction)[0]
+
+        return {"irrigation_level": str(irrigation_level)}
+
+    except Exception as e:
+        logger.error(f"Irrigation Error: {e}")
+        raise HTTPException(status_code=500, detail=f"ML Processing Exception: {str(e)}")
 
 # ──────────────────────────────────────────────────────────────────────────────
 # 10. Endpoints (Legacy Path Preservation)
@@ -585,10 +685,10 @@ async def get_crop_history(crop_id: str):
 @app.get("/")
 async def health_check():
     return {
-        "status":         "AgriTech ML API Running",
-        "model_status":   "Loaded" if ml_model is not None else "Not Loaded",
-        "model_classes":  len(class_names),
-        "ai_chat_status": "Active" if chat_ai is not None else "Fallback Mode"
+        "status":          "AgriTech ML API Running",
+        "disease_model":   "Loaded" if ml_model is not None else "Error",
+        "irrigation_model": "Active" if irr_model is not None else "Down",
+        "ai_chat_status":  "Active" if chat_ai is not None else "Fallback"
     }
 
 # Mock IoT crop data
@@ -827,5 +927,5 @@ async def predict_disease(file: UploadFile = File(...), language: str = "en"):
 
 if __name__ == "__main__":
     import uvicorn
-    print("Starting AgriTech AI Backend on http://0.0.0.0:8001")
-    uvicorn.run(app, host="0.0.0.0", port=8001)
+    print("Starting AgriTech AI Backend on http://0.0.0.0:8000")
+    uvicorn.run(app, host="0.0.0.0", port=8000)

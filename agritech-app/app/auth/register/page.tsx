@@ -27,7 +27,7 @@ export default function RegisterPage() {
             if (error) {
                 setError(typeof error === 'string' ? error : error.message || t('common.error'));
             } else {
-                router.push('/dashboard-farmer');
+                router.push('/farmer-dashboard');
             }
         } catch (err: unknown) {
             if (err instanceof Error) {

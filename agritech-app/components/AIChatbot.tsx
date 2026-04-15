@@ -27,7 +27,7 @@ export default function AIChatbot() {
     const recognitionRef = useRef<any>(null);
 
     const pathname = usePathname();
-    const isCropPage = pathname?.includes('/crops') || pathname?.includes('/dashboard-farmer');
+    const isCropPage = pathname?.includes('/crops') || pathname?.includes('/farmer-dashboard');
     const [sendTrigger, setSendTrigger] = useState<string | null>(null);
     const [allCrops, setAllCrops] = useState<any[]>([]);
 

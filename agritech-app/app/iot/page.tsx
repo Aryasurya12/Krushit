@@ -105,6 +105,43 @@ const CropAdvisoryCard = ({ crop, index }: any) => {
     const isVegetative = crop.current_stage === 'vegetative';
     const moistureValue = isVegetative ? 28 : (crop.health_status === 'healthy' ? 42 : 35);
     const isMoistureLow = moistureValue < 35;
+
+    const [irrigationLevel, setIrrigationLevel] = useState<string | null>(null);
+    const [isPredicting, setIsPredicting] = useState(false);
+
+    const runIrrigationPrediction = async () => {
+        setIsPredicting(true);
+        try {
+            const response = await fetch(`${process.env.NEXT_PUBLIC_ML_API_URL || 'http://localhost:8000'}/predict-irrigation`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    Soil_Type: 'Types of Black Soil',
+                    Soil_Moisture: moistureValue,
+                    Temperature_C: 28.5,
+                    Humidity: 65,
+                    Rainfall_mm: 10,
+                    Sunlight_Hours: 9,
+                    Wind_Speed_kmh: 12,
+                    Crop_Type: crop.name || 'Sugarcane',
+                    Crop_Growth_Stage: crop.current_stage || 'Vegetative',
+                    Season: 'Kharif',
+                    Irrigation_Type: 'Drip',
+                    Field_Area_hectare: crop.area * 0.4047,
+                    Previous_Irrigation_mm: 15,
+                    Region: 'Maharashtra'
+                })
+            });
+            const data = await response.json();
+            if (data.irrigation_level) {
+                setIrrigationLevel(data.irrigation_level);
+            }
+        } catch (error) {
+            console.error("Irrigation Prediction Error:", error);
+        } finally {
+            setIsPredicting(false);
+        }
+    };
     
     return (
         <motion.div 
@@ -211,15 +248,36 @@ const CropAdvisoryCard = ({ crop, index }: any) => {
                                 </div>
 
                                 <div className="lg:col-span-8 bg-white/70 backdrop-blur-sm rounded-3xl border border-blue-100/50 p-6 md:p-8 flex flex-col md:flex-row gap-8 shadow-sm">
-                                    <div className="flex-1">
-                                        <div className="flex items-center gap-2 text-blue-600 font-bold text-xs uppercase tracking-widest mb-4">
-                                            <Activity size={16} /> Recommendation
-                                        </div>
-                                        <p className="text-xl font-bold text-gray-900 leading-tight mb-6">
-                                            {isMoistureLow 
-                                                ? t('water.irrigationLow')
-                                                : t('water.irrigationOptimal')}
-                                        </p>
+                                        <div className="flex-1">
+                                            <div className="flex items-center justify-between text-blue-600 font-bold text-xs uppercase tracking-widest mb-4">
+                                                <div className="flex items-center gap-2">
+                                                    <Activity size={16} /> Recommendation
+                                                </div>
+                                                <button 
+                                                    onClick={runIrrigationPrediction}
+                                                    disabled={isPredicting}
+                                                    className="flex items-center gap-1.5 px-3 py-1 bg-blue-600 text-white rounded-full hover:bg-blue-700 transition-all text-[10px] shadow-lg shadow-blue-200"
+                                                >
+                                                    {isPredicting ? <span className="animate-spin text-xs">🌀</span> : <Sparkles size={12} />}
+                                                    {isPredicting ? 'Analyzing...' : 'AI PREDICT'}
+                                                </button>
+                                            </div>
+                                            <p className="text-xl font-bold text-gray-900 leading-tight mb-4">
+                                                {isMoistureLow 
+                                                    ? t('water.irrigationLow')
+                                                    : t('water.irrigationOptimal')}
+                                            </p>
+
+                                            {irrigationLevel && (
+                                                <motion.div 
+                                                    initial={{ opacity: 0, x: -10 }}
+                                                    animate={{ opacity: 1, x: 0 }}
+                                                    className="mb-6 inline-flex items-center gap-2 px-3 py-1.5 bg-blue-50 text-blue-700 rounded-xl border border-blue-100 shadow-sm"
+                                                >
+                                                    <Zap size={14} className="animate-pulse" />
+                                                    <span className="text-[10px] font-black uppercase">AI PRECISION: {irrigationLevel} Level</span>
+                                                </motion.div>
+                                            )}
                                         
                                         <div className="grid grid-cols-2 gap-4">
                                             <div className="bg-blue-50/50 p-4 rounded-2xl border border-blue-100">

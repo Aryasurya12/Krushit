@@ -73,13 +73,15 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
             const isDemoMode = localStorage.getItem('is_demo_mode') === 'true';
             
             if (!user && !isDemoMode) {
-                router.push('/admin-dashboard/login');
+                router.push('/auth/login');
             } else {
-                // Check role
-                const isUserAdmin = profile?.role === 'admin' || profile?.is_admin || user?.email?.endsWith('@krushit.com');
+                // Check role strictly
+                const userRole = profile?.role || localStorage.getItem('user_role');
+                const isUserAdmin = userRole === 'admin';
                 
                 if (!isUserAdmin && !isDemoMode) {
-                    router.push('/dashboard-farmer');
+                    console.warn("Access denied to Admin HQ for role:", userRole);
+                    router.push('/farmer-dashboard');
                 }
             }
         }

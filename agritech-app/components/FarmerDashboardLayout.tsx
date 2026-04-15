@@ -3,7 +3,7 @@
 import { motion, AnimatePresence } from 'framer-motion';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
-import { useState, useMemo, useCallback } from 'react';
+import { useState, useMemo, useCallback, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '@/contexts/AuthContext';
 import AIChatbot from '@/components/AIChatbot';
@@ -127,11 +127,35 @@ export default function FarmerDashboardLayout({ children }: { children: React.Re
     const [voiceListening, setVoiceListening] = useState(false);
     const pathname = usePathname();
     const { t, i18n } = useTranslation();
-    const { user, profile, signOut } = useAuth();
+    const { user, profile, loading, signOut } = useAuth();
     const router = useRouter();
 
+    useEffect(() => {
+        if (!loading) {
+            const isDemoMode = localStorage.getItem('is_demo_mode') === 'true';
+
+            if (!user && !isDemoMode) {
+                router.push('/auth/login');
+            } else {
+                // Check role strictly
+                const userRole = profile?.role || localStorage.getItem('user_role');
+                const isFarmer = userRole === 'farmer';
+
+                if (!isFarmer && !isDemoMode) {
+                    console.warn("Farmer access denied for role:", userRole);
+                    // If they are an admin, maybe send them to admin dashboard
+                    if (userRole === 'admin') {
+                        router.push('/admin-dashboard');
+                    } else {
+                        router.push('/auth/login');
+                    }
+                }
+            }
+        }
+    }, [user, profile, loading, router]);
+
     const safeNavItems = useMemo(() => [
-        { icon: LayoutDashboard, label: t('nav.home'), href: '/dashboard-farmer' },
+        { icon: LayoutDashboard, label: t('nav.home'), href: '/farmer-dashboard' },
         { icon: Sprout, label: t('nav.myCrop'), href: '/crops' },
         { icon: ScanLine, label: t('nav.scanCrop'), href: '/disease' },
         { icon: Droplets, label: t('nav.waterAdvice'), href: '/iot' },
