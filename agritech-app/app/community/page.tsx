@@ -32,38 +32,40 @@ export default function CommunityPage() {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const [selectedOutbreak, setSelectedOutbreak] = useState<any>(null);
 
-    const outbreaks = [
-        {
-            disease: 'Leaf Rust',
-            location: 'Within 5 km',
-            severity: 'High',
-            reports: 12,
-            cause: t('community.outbreaks.rust.cause'),
-            treatment: t('community.outbreaks.rust.treatment'),
-            prevention: t('community.outbreaks.rust.prevention'),
-            fertilizer: t('community.outbreaks.rust.fertilizer')
-        },
-        {
-            disease: 'Blast Disease',
-            location: 'Within 10 km',
-            severity: 'Moderate',
-            reports: 8,
-            cause: t('community.outbreaks.blast.cause'),
-            treatment: t('community.outbreaks.blast.treatment'),
-            prevention: t('community.outbreaks.blast.prevention'),
-            fertilizer: t('community.outbreaks.blast.fertilizer')
-        },
-        {
-            disease: 'Aphid Infestation',
-            location: 'Within 3 km',
-            severity: 'Low',
-            reports: 5,
-            cause: t('community.outbreaks.aphids.cause'),
-            treatment: t('community.outbreaks.aphids.treatment'),
-            prevention: t('community.outbreaks.aphids.prevention'),
-            fertilizer: t('community.outbreaks.aphids.fertilizer')
-        },
-    ];
+    const [reports, setReports] = useState<any[]>([]);
+
+    useEffect(() => {
+        const fetchReports = async () => {
+            const { data } = await supabase
+                .from('community_reports')
+                .select('*')
+                .order('created_at', { ascending: false })
+                .limit(50);
+            
+            if (data) setReports(data);
+        };
+
+        fetchReports();
+
+        const channel = supabase
+            .channel('community-realtime')
+            .on(
+                'postgres_changes',
+                {
+                    event: 'INSERT',
+                    schema: 'public',
+                    table: 'community_reports'
+                },
+                (payload) => {
+                    setReports((prev) => [payload.new, ...prev]);
+                }
+            )
+            .subscribe();
+
+        return () => {
+            supabase.removeChannel(channel);
+        };
+    }, []);
 
     const handleSubmit = async () => {
         if (!formData.diseaseName || !formData.cropAffected) {
@@ -78,35 +80,42 @@ export default function CommunityPage() {
             let lng = 72.8777;
 
             if (navigator.geolocation) {
-                const pos = await new Promise<GeolocationPosition>((resolve, reject) => {
-                    navigator.geolocation.getCurrentPosition(resolve, reject);
-                });
-                lat = pos.coords.latitude;
-                lng = pos.coords.longitude;
+                try {
+                    const pos = await new Promise<GeolocationPosition>((resolve, reject) => {
+                        navigator.geolocation.getCurrentPosition(resolve, reject);
+                    });
+                    lat = pos.coords.latitude;
+                    lng = pos.coords.longitude;
+                } catch (geoErr) {
+                    console.error("Location error", geoErr);
+                }
             }
 
+            const payload = {
+                title: formData.diseaseName,
+                description: `${formData.cropAffected} - ${formData.description}`,
+                latitude: lat,
+                longitude: lng,
+                location_name: "Local Farm", // In a real app we'd reverse-geocode lat/lng here
+                severity: "Moderate"
+            };
+
+            console.log("Submitting:", payload);
+
             const { error } = await supabase
-                .from('community_disease_records')
-                .insert([
-                    {
-                        disease_name: formData.diseaseName,
-                        crop_type: formData.cropAffected,
-                        location_lat: lat,
-                        location_lng: lng,
-                        severity: 'Moderate', // Default for now
-                        reported_date: new Date().toISOString().split('T')[0],
-                        description: formData.description
-                    }
-                ]);
+                .from("community_reports")
+                .insert([payload]);
 
-            if (error) throw error;
-
-            alert(t('community.success'));
-            setFormData({ diseaseName: '', cropAffected: '', description: '' });
-            // Refresh the page to show new marker (or use state management)
-            window.location.reload();
+            if (error) {
+                 console.error("Supabase Error:", error);
+                 alert(t('community.fail'));
+            } else {
+                 alert("Report submitted successfully");
+                 setFormData({ diseaseName: '', cropAffected: '', description: '' });
+                 // No page refresh! Realtime updates UI + Map automatically
+            }
         } catch (err) {
-            console.warn('Error submitting report:', err);
+            console.error('Error submitting report:', err);
             alert(t('community.fail'));
         } finally {
             setIsSubmitting(false);
@@ -125,25 +134,28 @@ export default function CommunityPage() {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-6">
                     <h3 className="text-xl font-bold text-gray-900 mb-4">{t('community.recentOutbreaks')}</h3>
-                    <div className="space-y-3">
-                        {outbreaks.map((outbreak, i) => (
+                    <div className="space-y-3 max-h-[600px] overflow-y-auto pr-2">
+                        {reports.length === 0 && <p className="text-gray-400 text-sm">No recent outbreaks reported.</p>}
+                        {reports.map((report) => (
                             <div
-                                key={i}
-                                onClick={() => setSelectedOutbreak(outbreak)}
+                                key={report.id}
+                                onClick={() => setSelectedOutbreak(report)}
                                 className="bg-gray-50 border border-gray-100 p-4 rounded-xl cursor-pointer hover:bg-green-50/50 hover:border-agri-green/30 transition-all shadow-sm hover:shadow-md group"
                             >
                                 <div className="flex items-center justify-between mb-2">
                                     <h4 className="text-gray-900 font-semibold group-hover:text-agri-green transition-colors">
-                                        {t(`scan.diseases.${outbreak.disease === 'Leaf Rust' ? 'leafRust' : outbreak.disease === 'Blast Disease' ? 'blast' : 'aphids'}`) || outbreak.disease}
+                                        {report.title}
                                     </h4>
-                                    <span className={`px-2 py-0.5 rounded text-xs font-bold uppercase ${outbreak.severity === 'High' ? 'bg-red-100 text-red-700' :
-                                        outbreak.severity === 'Moderate' ? 'bg-amber-100 text-amber-700' :
-                                            'bg-blue-100 text-blue-700'
-                                        }`}>
-                                        {t(`community.${outbreak.severity.toLowerCase()}`) || outbreak.severity}
+                                    <span className={`px-2 py-0.5 rounded text-xs font-bold uppercase border bg-amber-50 text-amber-700 border-amber-100`}>
+                                        {report.severity || "Moderate"}
                                     </span>
                                 </div>
-                                <p className="text-sm text-gray-500">{outbreak.location} • {outbreak.reports} {t('community.reports')}</p>
+                                <p className="text-xs text-gray-500 line-clamp-2 mb-2">{report.description}</p>
+                                <div className="flex items-center gap-2 text-[10px] text-gray-400 font-bold uppercase tracking-widest mt-1">
+                                    <span>{new Date(report.created_at).toLocaleDateString()}</span>
+                                    <span>•</span>
+                                    <span>{report.location_name || 'Near you'}</span>
+                                </div>
                             </div>
                         ))}
                     </div>
@@ -215,55 +227,33 @@ export default function CommunityPage() {
                                 </button>
 
                                 <div className="pr-12 mb-6">
-                                    <h3 className="text-2xl font-bold text-gray-900 mb-2">{t(`scan.diseases.${selectedOutbreak.disease === 'Leaf Rust' ? 'leafRust' : selectedOutbreak.disease === 'Blast Disease' ? 'blast' : 'aphids'}`) || selectedOutbreak.disease}</h3>
+                                    <h3 className="text-2xl font-bold text-gray-900 mb-2">{selectedOutbreak.title}</h3>
                                     <div className="flex flex-wrap items-center gap-3">
-                                        <span className={`px-3 py-1 rounded-full text-xs font-bold uppercase flex items-center gap-1.5 ${selectedOutbreak.severity === 'High' ? 'bg-red-100 text-red-700' : selectedOutbreak.severity === 'Moderate' ? 'bg-amber-100 text-amber-700' : 'bg-blue-100 text-blue-700'}`}>
-                                            <AlertTriangle size={14} /> {t(`community.${selectedOutbreak.severity.toLowerCase()}`) || selectedOutbreak.severity} {t('community.riskLevel')}
+                                        <span className={`px-3 py-1 rounded-full text-xs font-bold uppercase flex items-center gap-1.5 bg-amber-100 text-amber-700`}>
+                                            <AlertTriangle size={14} /> {selectedOutbreak.severity || 'Moderate'} {t('community.riskLevel')}
                                         </span>
                                         <span className="text-sm font-semibold text-gray-500 bg-gray-100 px-3 py-1 rounded-full border border-gray-200">
-                                            ⚠️ {selectedOutbreak.reports} {t('community.reports')} {selectedOutbreak.location.toLowerCase()}
+                                            {selectedOutbreak.location_name || 'Confirmed Location'}
                                         </span>
                                     </div>
                                 </div>
 
                                 <div className="space-y-4">
-                                    {/* Cause */}
                                     <div className="bg-blue-50 rounded-xl p-4 border border-blue-100">
                                         <h4 className="text-sm font-bold text-blue-900 mb-2 flex items-center gap-2">
-                                            <AlertTriangle size={16} /> {t('community.cause')}
+                                            <AlertTriangle size={16} /> Description
                                         </h4>
                                         <p className="text-sm text-blue-800 leading-relaxed font-medium">
-                                            {selectedOutbreak.cause}
+                                            {selectedOutbreak.description}
                                         </p>
                                     </div>
 
-                                    {/* Treatment Solution */}
                                     <div className="bg-green-50 rounded-xl p-4 border border-green-100">
                                         <h4 className="text-sm font-bold text-green-900 mb-3 flex items-center gap-2">
-                                            <CheckCircle size={16} /> {t('community.solution')}
+                                            <CheckCircle size={16} /> Date Reported
                                         </h4>
                                         <p className="text-sm text-green-800 leading-relaxed font-medium">
-                                            {selectedOutbreak.treatment}
-                                        </p>
-                                    </div>
-
-                                    {/* Prevention */}
-                                    <div className="bg-purple-50 rounded-xl p-4 border border-purple-100">
-                                        <h4 className="text-sm font-bold text-purple-900 mb-3 flex items-center gap-2">
-                                            <AlertTriangle size={16} /> {t('community.prevention')}
-                                        </h4>
-                                        <p className="text-sm text-purple-800 leading-relaxed font-medium">
-                                            {selectedOutbreak.prevention}
-                                        </p>
-                                    </div>
-
-                                    {/* Fertilizer Recommendation */}
-                                    <div className="bg-amber-50 rounded-xl p-4 border border-amber-100">
-                                        <h4 className="text-sm font-bold text-amber-900 mb-2 flex items-center gap-2">
-                                            <Leaf size={16} /> {t('community.fertilizer')}
-                                        </h4>
-                                        <p className="text-sm text-amber-800 leading-relaxed font-medium">
-                                            {selectedOutbreak.fertilizer}
+                                            {new Date(selectedOutbreak.created_at).toLocaleString()}
                                         </p>
                                     </div>
                                 </div>

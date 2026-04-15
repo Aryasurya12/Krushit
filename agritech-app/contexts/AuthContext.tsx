@@ -45,11 +45,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const router = useRouter();
 
     const fetchProfile = useCallback(async (userId: string) => {
-        // Skip DB fetch for all mock/demo users consistently
-        if (userId.startsWith('mock-user-') || userId.startsWith('d3300000') || userId.startsWith('r4800000')) {
-            return;
-        }
-
         try {
             // Check 'users' table (KRUSHIT standard)
             const { data, error } = await supabase
@@ -106,46 +101,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }, [fetchProfile]);
 
     const signIn = useCallback(async (email: string, password: string) => {
-        // DEMO MODE: Allow demo login without Supabase latency
-        // Case insensitive for email ease of use
-        const normalizedEmail = email.trim().toLowerCase();
-
-        if (normalizedEmail.endsWith('@krushit.com')) {
-            // In development/demo mode, we accept ANY @krushit.com account automatically
-            const name = normalizedEmail.split('@')[0].split('.').map(s => s.charAt(0).toUpperCase() + s.slice(1)).join(' ');
-            const mockUser = {
-                id: `mock-user-${normalizedEmail.split('@')[0]}`,
-                email: normalizedEmail,
-                user_metadata: {
-                    full_name: name,
-                    phone: '+91 99999 99999',
-                    region: 'Maharashtra, India',
-                    language: 'en',
-                    notifications: { disease: true, weather: true, irrigation: true }
-                },
-                app_metadata: {},
-                aud: 'authenticated',
-                created_at: new Date().toISOString()
-            } as unknown as User;
-
-            // Immediate state update for perceived performance
-            setUser(mockUser);
-            const mockProfile = {
-                id: mockUser.id,
-                email: mockUser.email,
-                full_name: name,
-                phone: '+91 99999 99999',
-                region: 'Maharashtra, India',
-                language: 'en',
-                is_admin: normalizedEmail.includes('admin'),
-                role: (normalizedEmail.includes('admin') ? 'admin' : 'farmer') as 'admin' | 'farmer',
-                notifications: { disease: true, weather: true, irrigation: true }
-            };
-            setProfile(mockProfile);
-            setSession({ user: mockUser, access_token: 'demo-token-' + Date.now() } as unknown as Session);
-            console.log("Mock Login Success for:", normalizedEmail);
-            return { user: mockUser, profile: mockProfile, error: null };
-        }
 
         try {
             const { data, error } = await supabase.auth.signInWithPassword({
@@ -226,10 +181,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             setSession({ ...session, user: optimisicUser });
         }
 
-        // DEMO MODE: Bypass Supabase for any mock/demo account
-        if (user.id.startsWith('mock-user-') || user.id.startsWith('d3300000') || user.id.startsWith('r4800000')) {
-            return { data: optimisicUser, error: null };
-        }
+
 
         try {
             // 1. Update Auth Metadata
@@ -269,10 +221,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const deleteAccount = useCallback(async () => {
         if (!user) return { error: { message: 'No user authenticated' } };
 
-        if (user.id.startsWith('mock-user-') || user.id.startsWith('d3300000') || user.id.startsWith('r4800000')) {
-            await signOut();
-            return { error: null };
-        }
+
 
         try {
             // Self-deletion for authenticated users (depends on RLS/Postgres policies usually)

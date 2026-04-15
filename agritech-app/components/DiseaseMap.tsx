@@ -18,38 +18,19 @@ const fixLeafletIcons = () => {
 
 import { supabase } from '@/lib/supabase';
 
-interface FarmMarker {
-    farm_id: string;
-    farmer_name: string;
-    crop_name: string;
-    disease_name: string;
-    disease_severity: 'Healthy' | 'Mild' | 'Moderate' | 'Severe';
+interface CommunityReport {
+    id: string;
+    title: string;
+    description: string;
+    location_name: string;
+    severity: string;
     latitude: number;
     longitude: number;
+    created_at: string;
 }
 
-const haversineDistance = (lat1: number, lon1: number, lat2: number, lon2: number) => {
-    const toRad = (x: number) => x * Math.PI / 180;
-    const R = 6371; // Earth's radius in km
-    const dLat = toRad(lat2 - lat1);
-    const dLon = toRad(lon2 - lon1);
-    const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-        Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) *
-        Math.sin(dLon / 2) * Math.sin(dLon / 2);
-    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-    return R * c;
-};
-
-// Fallback logic incase actual farm table doesn't exist locally
-const getFallbackFarms = (lat: number, lng: number): FarmMarker[] => [
-    { farm_id: 'mock-1', farmer_name: 'Raj Patil', crop_name: 'Wheat', disease_name: 'Healthy', disease_severity: 'Healthy', latitude: lat + 0.012, longitude: lng + 0.015 },
-    { farm_id: 'mock-2', farmer_name: 'Amit Kumar', crop_name: 'Rice', disease_name: 'Blast Disease', disease_severity: 'Severe', latitude: lat - 0.02, longitude: lng + 0.02 },
-    { farm_id: 'mock-3', farmer_name: 'Sunita Sharma', crop_name: 'Cotton', disease_name: 'Aphid Infestation', disease_severity: 'Mild', latitude: lat + 0.015, longitude: lng - 0.025 },
-    { farm_id: 'mock-4', farmer_name: 'Suresh Verma', crop_name: 'Sugarcane', disease_name: 'Red Rot', disease_severity: 'Moderate', latitude: lat - 0.01, longitude: lng - 0.02 },
-];
-
 const DiseaseMap: React.FC = () => {
-    const [farms, setFarms] = useState<FarmMarker[]>([]);
+    const [reports, setReports] = useState<CommunityReport[]>([]);
     const [userLocation, setUserLocation] = useState<[number, number] | null>(null);
     const [isOffline, setIsOffline] = useState(false);
 
@@ -58,45 +39,33 @@ const DiseaseMap: React.FC = () => {
 
         let currentLocation: [number, number] = [19.0760, 72.8777]; // Default Mumbai
 
-        const fetchFarms = async (userLat: number, userLng: number) => {
+        const fetchReports = async () => {
             try {
-                const { data, error } = await supabase.from('farms').select('*');
+                const { data, error } = await supabase.from('community_reports').select('*');
 
                 if (error) {
-                    console.warn('Supabase fetch error, using fallback:', error.message);
-                    setFarms(getFallbackFarms(userLat, userLng));
-                    setIsOffline(true);
+                    console.warn('Supabase fetch error:', error.message);
                     return;
                 }
 
                 if (data && data.length > 0) {
-                    // Filter farms strictly within 10 km radius
-                    const nearbyFarms = data.filter((farm: any) => {
-                        const dist = haversineDistance(userLat, userLng, farm.latitude, farm.longitude);
-                        return dist <= 10;
-                    });
-                    setFarms(nearbyFarms as FarmMarker[]);
+                    setReports(data as CommunityReport[]);
                     setIsOffline(false);
-                } else {
-                    setFarms(getFallbackFarms(userLat, userLng));
-                    setIsOffline(true);
                 }
             } catch (err) {
-                console.warn('Network error, using fallback');
-                setFarms(getFallbackFarms(userLat, userLng));
-                setIsOffline(true);
+                console.warn('Network error', err);
             }
         };
 
         const setupRealtime = () => {
             const channel = supabase
-                .channel('public:farms')
+                .channel('public:community_reports')
                 .on(
                     'postgres_changes',
-                    { event: '*', schema: 'public', table: 'farms' },
+                    { event: '*', schema: 'public', table: 'community_reports' },
                     () => {
-                        // Re-fetch farms dynamically when database updates
-                        fetchFarms(currentLocation[0], currentLocation[1]);
+                        // Re-fetch reports dynamically when database updates
+                        fetchReports();
                     }
                 )
                 .subscribe();
@@ -114,17 +83,17 @@ const DiseaseMap: React.FC = () => {
                     const loc: [number, number] = [position.coords.latitude, position.coords.longitude];
                     setUserLocation(loc);
                     currentLocation = loc;
-                    fetchFarms(loc[0], loc[1]);
+                    fetchReports();
                 },
                 () => {
                     // Handle blocked location permissions by using default loc
                     setUserLocation(currentLocation);
-                    fetchFarms(currentLocation[0], currentLocation[1]);
+                    fetchReports();
                 }
             );
         } else {
             setUserLocation(currentLocation);
-            fetchFarms(currentLocation[0], currentLocation[1]);
+            fetchReports();
         }
 
         return () => {
@@ -183,37 +152,37 @@ const DiseaseMap: React.FC = () => {
                     </Popup>
                 </Marker>
 
-                {farms.map((farm) => (
-                    <React.Fragment key={farm.farm_id}>
-                        <Marker position={[farm.latitude, farm.longitude]} icon={getMarkerIcon(farm.disease_severity)}>
+                {reports.map((report) => (
+                    <React.Fragment key={report.id}>
+                        <Marker position={[report.latitude, report.longitude]} icon={getMarkerIcon(report.severity)}>
                             <Popup>
                                 <div className="p-1 min-w-[170px]">
                                     <h3 className="font-bold text-gray-900 border-b pb-1.5 mb-2 text-base flex items-center gap-1.5">
-                                        🧑‍🌾 {farm.farmer_name}
+                                        📍 {report.location_name || 'Community Farm'}
                                     </h3>
                                     <div className="space-y-1.5">
-                                        <p className="text-sm text-gray-700">
-                                            <span className="font-semibold text-gray-900">Crop:</span> {farm.crop_name}
+                                        <p className="text-sm font-semibold text-gray-900">
+                                            {report.title}
                                         </p>
-                                        <p className="text-sm text-gray-700">
-                                            <span className="font-semibold text-gray-900">Disease:</span> {farm.disease_name}
+                                        <p className="text-xs text-gray-700">
+                                            {report.description}
                                         </p>
                                         <div className="mt-3 text-xs font-bold uppercase py-1 px-2.5 rounded-md w-max border" style={{
-                                            backgroundColor: farm.disease_severity === 'Severe' ? '#fef2f2' : farm.disease_severity === 'Moderate' ? '#fff7ed' : farm.disease_severity === 'Mild' ? '#fefce8' : '#ecfdf5',
-                                            color: farm.disease_severity === 'Severe' ? '#b91c1c' : farm.disease_severity === 'Moderate' ? '#c2410c' : farm.disease_severity === 'Mild' ? '#a16207' : '#047857',
-                                            borderColor: farm.disease_severity === 'Severe' ? '#fecaca' : farm.disease_severity === 'Moderate' ? '#fed7aa' : farm.disease_severity === 'Mild' ? '#fef08a' : '#a7f3d0'
+                                            backgroundColor: report.severity === 'High' ? '#fef2f2' : report.severity === 'Moderate' ? '#fff7ed' : '#fefce8',
+                                            color: report.severity === 'High' ? '#b91c1c' : report.severity === 'Moderate' ? '#c2410c' : '#a16207',
+                                            borderColor: report.severity === 'High' ? '#fecaca' : report.severity === 'Moderate' ? '#fed7aa' : '#fef08a'
                                         }}>
-                                            {farm.disease_severity} Severity
+                                            {report.severity} Severity
                                         </div>
                                     </div>
                                 </div>
                             </Popup>
                         </Marker>
 
-                        {/* 3km Radius Alert Circle for Severe Outbreaks */}
-                        {farm.disease_severity === 'Severe' && (
+                        {/* Alert Radius Area */}
+                        {report.severity === 'High' && (
                             <Circle
-                                center={[farm.latitude, farm.longitude]}
+                                center={[report.latitude, report.longitude]}
                                 pathOptions={{
                                     color: '#ef4444',
                                     fillColor: '#ef4444',

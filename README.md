@@ -24,40 +24,33 @@ Our mission is to reduce crop loss, optimize resource usage (water/fertilizer), 
 ### 1. 🚜 Farm Command Center (Dashboard)
 A unified interface where farmers can monitor their entire operation at a glance.
 - **Farm Health Score**: A proprietary AI-driven metric calculating overall farm status.
-- **Live Data Streams**: Humidity, Soil Temperature, and Moisture updates.
+- **Real-Time Node Architecture**: A state-of-the-art **Push-based Supabase Realtime Engine** completely hydrates identical sensor payload data globally without ever refreshing.
 - **Urgent Alerts**: Instant notifications for disease outbreaks or irrigation needs.
-- **Quick Actions**: One-tap access to scan crops or check water requirements.
 
 ### 2. 🔍 AI Crop Disease Detection
 Leveraging **TensorFlow.js** and high-accuracy neural networks to identify plant pathology.
 - **Instant Scans**: Detect 38+ common crop diseases with >95% accuracy.
-- **Deep Insights**: Beyond naming the disease, Krushit provides:
-  - **Cause Analysis**: Why the disease occurred.
-  - **Treatment Plan**: Specifically tailored chemical or organic solutions.
-  - **Prevention Tips**: How to prevent recurrence.
-  - **Fertilizer Roadmap**: Nutritional adjustments to boost immunity.
+- **Persistent Tracking**: A locally mirrored and permanently synced diagnostics history lets farmers trace crop lifecycle improvements over time.
+- **Native Document Export Engine**: Built natively with `jsPDF` and `jspdf-autotable`, generate strictly formatted, A4 professional vector reports outlining detected pathologies, granular budget estimations, and mitigation protocols immediately onto portable devices.
 
 ### 3. 🤖 AI Farm Assistant (Multilingual Bot)
 A smart companion powered by **Gemini 2.5 Flash**.
 - **Voice & Text Input**: Farmers can speak or type in **English, Hindi, or Marathi**.
 - **Context-Aware**: The bot knows your crop type, soil moisture, and local weather.
-- **Instant Advice**: "Should I irrigate today?", "What fertilizer is best for wheat stage 3?", etc.
 
 ### 4. 📡 IoT Sensor Ecosystem
 Real-time monitoring through distributed field sensors.
 - **Smart Irrigation Windows**: Tells you the *exact* hour to water to minimize evaporation.
 - **Nutrient Roadmap**: Tracks NPK and pH levels to optimize fertilization cycles.
-- **Automatic Rescheduling**: AI-driven calendar that postpones activities based on rain/wind forecasts.
 
 ### 5. 🏛️ Government Schemes Navigator
-Helping farmers bridge the financial gap.
-- **Eligibility Filter**: Find subsidies based on farm size and state.
+Helping farmers bridge the financial gap securely.
+- **Smart Personalized Engine**: A dynamic matching logic reads the user's localized risk profile and maps the optimal federal/state subventions out of dynamic registries directly pushing them based on farm scale and conditions.
 - **Direct Apply**: Direct links to official portals (PM-KISAN, PMFBY, KCC).
-- **Latest Alerts**: Real-time updates on new government announcements.
 
 ### 6. 🗺️ Community Disease Map
-- **Regional Heatmap**: See what diseases are trending in your neighboring fields.
-- **Anonymized Reporting**: Contribute to the local data to prevent regional outbreaks.
+- **Globally Tracked Real-Time GIS**: Submitting an active hazard payload via native GPS coordinate mappings immediately forces a push broadcast to all surrounding `DiseaseMap` components natively out of the central Supabase nexus.
+- **Anonymized Reporting**: Contribute to the local data to prevent regional outbreaks securely.
 
 ---
 
@@ -65,21 +58,21 @@ Helping farmers bridge the financial gap.
 
 ### **Frontend (Next.js 14)**
 - **Framework**: App Router, Server Components.
-- **State Management**: React Context + i18next for global language state.
-- **Animations**: Framer Motion for premium experience.
+- **State Management**: Zero-refresh mapping through integrated `Supabase WebSocket channels`, unified Hooks, + i18next global state.
+- **Engine Exports**: Pure client-side highly formatted vector text extraction via `jsPDF`.
 - **Aesthetics**: Glassmorphism, smooth micro-interactions, and visual data cards.
 - **i18n**: Fully localized in English, Hindi, and Marathi with instant toggle.
 
 ### **Backend (FastAPI & Python)**
 - **Architecture**: Asynchronous REST API.
-- **Database**: **Supabase/PostgreSQL** for scalable, real-time data storage.
+- **Database**: **Supabase/PostgreSQL** for scalable, heavily optimized real-time Row-Level-Secured data storage.
 - **Auth**: Secure JWT-based authentication.
 - **AI/ML Integration**:
   - **TensorFlow**: For image-based disease prediction.
   - **Google Gemini**: For natural language processing and advisory.
 
 ### **IoT Layer**
-- **Data Pipeline**: Real-time telemetry processing for Soil/Air data.
+- **Data Pipeline**: Real-time telemetry processing dynamically routed via secure push-model WebSockets logic straight into the dashboard without destructive polling endpoints.
 - **Analytics**: Historical trending of farm health metrics.
 
 ---

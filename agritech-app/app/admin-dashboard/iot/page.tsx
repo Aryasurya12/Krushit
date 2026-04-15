@@ -128,7 +128,78 @@ export default function IoTMonitoringPage() {
 
     useEffect(() => {
         fetchDevices();
+        
+        // Push-model Supabase Realtime Subscription Engine
+        const channel = supabase
+            .channel('realtime-sensor-data')
+            .on(
+                'postgres_changes',
+                {
+                    event: '*', // INSERT, UPDATE, DELETE
+                    schema: 'public',
+                    table: 'iot_sensors'
+                },
+                (payload) => {
+                    console.log("[Admin] Realtime update:", payload);
+                    handleRealtimeUpdate(payload);
+                }
+            )
+            .subscribe((status) => {
+                console.log("[Admin] Realtime Subscription Status:", status);
+            });
+
+        return () => {
+            supabase.removeChannel(channel);
+        };
     }, []);
+
+    const handleRealtimeUpdate = (payload: any) => {
+        if (!payload.new) return;
+        const read = payload.new;
+        const farmId = read.crop_id || read.user_id || 'unknown';
+        
+        setDevices(prev => {
+            const copy = [...prev];
+            const existingIdx = copy.findIndex(d => d.id === `GATEWAY-${farmId.slice(0, 4)}`);
+            
+            let label = read.sensor_type;
+            if (label === 'air_temperature') label = 'temp';
+            if (label === 'soil_moisture') label = 'moisture';
+            
+            if (existingIdx !== -1) {
+                // Update existing node dynamically
+                const item = { ...copy[existingIdx] };
+                item.status = 'online';
+                item.last_update = new Date(read.timestamp).toLocaleTimeString();
+                item.sensor_data = {
+                    ...item.sensor_data,
+                    [label]: `${read.value}${read.unit}`
+                };
+                
+                copy[existingIdx] = item;
+                
+                // Keep the drill-down modal perfectly synced live
+                setSelectedDevice((current: any) => {
+                    if (current && current.id === item.id) return item;
+                    return current;
+                });
+            } else {
+                // Insert newly spawned transmission node
+                copy.push({
+                    id: `GATEWAY-${farmId.slice(0, 4)}`,
+                    farm_name: 'New Node (Awaiting Identity Sync)',
+                    status: 'online',
+                    battery: Math.floor(Math.random() * 40) + 60,
+                    connectivity: 'Cellular-IoT',
+                    last_update: new Date(read.timestamp).toLocaleTimeString(),
+                    sensor_data: {
+                        [label]: `${read.value}${read.unit}`
+                    }
+                });
+            }
+            return copy;
+        });
+    };
 
     const provisionDevice = () => {
         console.log("[Admin] Initializing hardware provisioning sequence...");

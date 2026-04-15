@@ -8,6 +8,8 @@ import { motion, AnimatePresence } from 'framer-motion';
 
 import { jsPDF } from 'jspdf';
 import autoTable from 'jspdf-autotable';
+import { createRoot } from 'react-dom/client';
+import { PdfReportTemplate } from '@/components/PdfReportTemplate';
 
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/lib/supabase';
@@ -249,50 +251,244 @@ export default function ScanCropPage() {
         }
     };
 
+    const reportData = result && result.disease !== 'Error' ? {
+        appName: 'Krushit',
+        date: new Date().toLocaleDateString(),
+        reportId: `REP-${Math.floor(Math.random() * 100000)}`,
+        disease: {
+            name: result.diseaseLocal || result.disease,
+            confidence: result.confidence,
+            severity: result.severity,
+            verified: true
+        },
+        diagnosis: {
+            cause: result.cause,
+            treatment: result.treatment,
+            prevention: result.prevention,
+            fertilizer: result.fertilizer
+        },
+        farm: {
+            area: (crops.find(c => c.id === selectedCropId)?.area || 3.5) + ' Acres',
+            cropType: selectedCropId && crops.find(c => c.id === selectedCropId) 
+                      ? crops.find(c => c.id === selectedCropId)?.name 
+                      : result.disease.split('___')[0] || 'Unknown',
+            issueType: result.diseaseLocal?.includes('Deficiency') ? 'Nutrient' : 'Pathogen',
+            region: 'Local Farm'
+        },
+        imageUrl: selectedImage || undefined,
+        budget: (() => {
+             const p = getProtocol(result.disease);
+             if(p) {
+                  const area = parseFloat(crops.find(c => c.id === selectedCropId)?.area) || 3.5;
+                  return {
+                      chemical: p.chemical,
+                      dosagePerAcre: p.dosage + ' ' + p.unit,
+                      totalQuantity: (area * p.dosage).toFixed(2) + ' ' + p.unit,
+                      pricePerKg: typeof p.pricePerUnit === 'number' ? 'Rs. ' + p.pricePerUnit : p.pricePerUnit,
+                      applicationMethod: p.method,
+                      totalCost: 'Rs. ' + (Math.round(area * p.dosage * p.pricePerUnit) + 800) // base labor cost
+                  };
+             }
+             return undefined;
+        })()
+    } : null;
+
     const handleSave = async () => {
-        // Now mostly acts as PDF export since auto-save is active
-        if (!result || result.disease === 'Error') return;
+        // Native jsPDF structured text document pipeline (No html2canvas snapshots)
+        if (!result || result.disease === 'Error' || !reportData) return;
+        
         setSaving(true);
         try {
-            const doc = new jsPDF();
-            doc.setFontSize(22);
-            doc.setTextColor(22, 163, 74);
-            doc.text("Krushit Disease Diagnosis", 14, 20);
-            doc.setFontSize(12);
-            doc.setTextColor(100);
-            doc.text(`Date: ${new Date().toLocaleDateString()}`, 14, 28);
-            autoTable(doc, {
-                startY: 35,
-                body: [
-                    ['Disease Detected', result.diseaseLocal || result.disease],
-                    ['Confidence', `${result.confidence}%`],
-                    ['Severity', String(result.severity).toUpperCase()],
-                ],
-                theme: 'striped',
-                headStyles: { fillColor: [22, 163, 74] }
-            });
-            const finalY = (doc as any).lastAutoTable.finalY + 10;
-            if (result.treatment || result.prevention) {
-                doc.setFontSize(14);
-                doc.setTextColor(0);
-                doc.text("Treatment Plan", 14, finalY);
-                autoTable(doc, {
-                    startY: finalY + 5,
-                    head: [['Category', 'Details']],
-                    body: [
-                        ['Cause', result.cause || 'N/A'],
-                        ['Treatment', result.treatment || 'N/A'],
-                        ['Prevention', result.prevention || 'N/A'],
-                        ['Fertilizer', result.fertilizer || 'N/A'],
-                    ],
-                    styles: { cellWidth: 'wrap' },
-                    columnStyles: { 0: { cellWidth: 40 } }
+            const doc = new jsPDF('p', 'pt', 'a4');
+            const pageWidth = doc.internal.pageSize.getWidth();
+            const pageHeight = doc.internal.pageSize.getHeight();
+            const margin = 40;
+            let currentY = margin;
+
+            // --- Styling Helpers ---
+            const addTitle = (text: string) => {
+                currentY += 10;
+                doc.setFont("helvetica", "bold");
+                doc.setFontSize(16);
+                doc.setTextColor(30, 41, 59); // text-slate-800
+                doc.text(text, margin, currentY);
+                currentY += 20;
+            };
+
+            const addText = (text: string, isBold: boolean = false) => {
+                const maxWidth = pageWidth - (margin * 2);
+                doc.setFont("helvetica", isBold ? "bold" : "normal");
+                doc.setFontSize(isBold ? 12 : 11);
+                doc.setTextColor(isBold ? 30 : 71, isBold ? 41 : 85, isBold ? 59 : 105);
+                
+                // Deduplicate repetitive sentences generated by AI
+                let cleanedText = text.replace(/_/g, ' ').replace(/\n+/g, '\n').trim();
+                const sentences = cleanedText.split('. ');
+                cleanedText = [...new Set(sentences)].join('. ');
+
+                // Split into paragraphs to maintain lines
+                const paragraphs = cleanedText.split('\n');
+                
+                paragraphs.forEach(paragraph => {
+                    if (!paragraph.trim()) return;
+                    const lines = doc.splitTextToSize(paragraph, maxWidth);
+                    const lineHeight = 16;
+                    
+                    if (currentY + (lines.length * lineHeight) > pageHeight - margin) {
+                        doc.addPage();
+                        currentY = margin;
+                    }
+                    
+                    doc.text(lines, margin, currentY, { lineHeightFactor: 1.5 });
+                    currentY += (lines.length * lineHeight) + (isBold ? 8 : 12); 
                 });
+            };
+
+            // 1. HEADER
+            doc.setFont("helvetica", "bold");
+            doc.setFontSize(24);
+            doc.setTextColor(22, 163, 74); // text-green-600
+            doc.text("Krushit", margin, currentY);
+            currentY += 25;
+
+            doc.setFontSize(14);
+            doc.setTextColor(15, 23, 42); 
+            doc.text("AI Crop Disease Detection Report", margin, currentY);
+            
+            // Right aligned header data
+            doc.setFontSize(10);
+            doc.setFont("helvetica", "normal");
+            doc.setTextColor(100, 116, 139);
+            doc.text(`Date: ${reportData.date}`, pageWidth - margin, currentY - 15, { align: 'right' });
+            doc.text(`ID: ${reportData.reportId}`, pageWidth - margin, currentY, { align: 'right' });
+            
+            currentY += 15;
+            // Divider
+            doc.setDrawColor(226, 232, 240);
+            doc.setLineWidth(1);
+            doc.line(margin, currentY, pageWidth - margin, currentY);
+            currentY += 25;
+
+            // 2. DIAGNOSIS SUMMARY
+            addTitle("DIAGNOSIS SUMMARY");
+            autoTable(doc, {
+                startY: currentY,
+                margin: { left: margin, right: margin },
+                theme: 'plain',
+                body: [
+                    [{ content: 'Disease Detected:', styles: { fontStyle: 'bold', textColor: [30, 41, 59], cellPadding: { top: 6, bottom: 4 } } }, { content: reportData.disease.name.replace(/_/g, ' '), styles: { fontSize: 13, fontStyle: 'bold', textColor: [22, 163, 74], cellPadding: { top: 6, bottom: 4 } } }],
+                    [{ content: 'Confidence:', styles: { fontStyle: 'bold', textColor: [30, 41, 59] } }, { content: `${reportData.disease.confidence}%`, styles: { fontStyle: 'bold' } }],
+                    [{ content: 'Severity:', styles: { fontStyle: 'bold', textColor: [30, 41, 59] } }, reportData.disease.severity.toUpperCase()],
+                    [{ content: 'Verification:', styles: { fontStyle: 'bold', textColor: [30, 41, 59] } }, 'AI Verified']
+                ],
+                styles: { fontSize: 11, cellPadding: 5, textColor: [71, 85, 105] },
+                columnStyles: { 0: { cellWidth: 130 } }
+            });
+            currentY = (doc as any).lastAutoTable.finalY + 16;
+
+            // 3. FARM DETAILS
+            addTitle("FARM DETAILS");
+            autoTable(doc, {
+                startY: currentY,
+                margin: { left: margin, right: margin },
+                theme: 'grid',
+                head: [['Field', 'Value']],
+                body: [
+                    ['Farm Area', reportData.farm.area],
+                    ['Crop Type', reportData.farm.cropType],
+                    ['Issue Type', reportData.farm.issueType],
+                    ['Region', reportData.farm.region]
+                ],
+                headStyles: { fillColor: [241, 245, 249], textColor: [15, 23, 42], fontStyle: 'bold' },
+                styles: { fontSize: 10, cellPadding: 6, textColor: [71, 85, 105], lineColor: [226, 232, 240] }
+            });
+            currentY = (doc as any).lastAutoTable.finalY + 25;
+
+            // 4. ANALYSIS & RECOMMENDATIONS
+            addTitle("ANALYSIS & RECOMMENDATIONS");
+            if (reportData.diagnosis.cause) {
+                addText("Disease Cause", true);
+                addText(reportData.diagnosis.cause.replace(/_/g, ' '));
             }
-            doc.save(`Disease_Report_${result.disease.replace(/\s+/g, '_')}.pdf`);
-            addNotification(t('common.downloadSuccess'), "Your diagnosis report has been downloaded.", 'crop');
+            if (reportData.diagnosis.treatment) {
+                addText("Treatment Plan", true);
+                addText(reportData.diagnosis.treatment.replace(/_/g, ' '));
+            }
+            if (reportData.diagnosis.prevention) {
+                addText("Preventive Action", true);
+                addText(reportData.diagnosis.prevention.replace(/_/g, ' '));
+            }
+            if (reportData.diagnosis.fertilizer) {
+                addText("Fertilizer Advice", true);
+                addText(reportData.diagnosis.fertilizer.replace(/_/g, ' '));
+            }
+            currentY += 10;
+
+            // Page Break for Budget
+            if (currentY > pageHeight - 250) {
+                doc.addPage();
+                currentY = margin;
+            }
+
+            // 5. TREATMENT BUDGET
+            if (reportData.budget) {
+                addTitle("TREATMENT BUDGET");
+                autoTable(doc, {
+                    startY: currentY,
+                    margin: { left: margin, right: margin },
+                    theme: 'grid',
+                    head: [['Parameter', 'Value']],
+                    body: [
+                        ['Chemical', reportData.budget.chemical],
+                        ['Dosage per Acre', reportData.budget.dosagePerAcre],
+                        ['Total Quantity', reportData.budget.totalQuantity],
+                        ['Price per Unit', reportData.budget.pricePerKg],
+                        ['Application Method', reportData.budget.applicationMethod],
+                        [{ content: 'Total Cost', styles: { fontStyle: 'bold', textColor: [15, 23, 42], fontSize: 12 } }, { content: reportData.budget.totalCost, styles: { fontStyle: 'bold', textColor: [22, 163, 74], fontSize: 12 } }]
+                    ],
+                    headStyles: { fillColor: [241, 245, 249], textColor: [15, 23, 42], fontStyle: 'bold' },
+                    styles: { fontSize: 11, cellPadding: 8, textColor: [71, 85, 105], lineColor: [226, 232, 240] }
+                });
+                currentY = (doc as any).lastAutoTable.finalY + 30;
+            }
+
+            // 6. IMAGE SECTION
+            if (reportData.imageUrl && reportData.imageUrl.startsWith('data:image')) {
+                if (currentY + 220 > pageHeight - margin) {
+                    doc.addPage();
+                    currentY = margin;
+                }
+                addTitle("DETECTED CROP CONDITION");
+                try {
+                    // Force JPEG and simple dimensions
+                    doc.addImage(reportData.imageUrl, 'JPEG', margin, currentY, 200, 200);
+                    currentY += 210;
+                    doc.setFontSize(10);
+                    doc.setFont("helvetica", "italic");
+                    doc.text("Caption: Analyzed crop specimen", margin, currentY);
+                    currentY += 20;
+                } catch(e) {
+                    console.warn("Could not embed image in PDF:", e);
+                }
+            }
+
+            // 8. FOOTER (Loop through pages to attach global footer)
+            const pageCount = (doc as any).internal.getNumberOfPages();
+            for (let i = 1; i <= pageCount; i++) {
+                doc.setPage(i);
+                doc.setFontSize(9);
+                doc.setTextColor(148, 163, 184); // slate-400
+                doc.text("Generated by Krushit AI", margin, pageHeight - 20);
+                doc.text(`${new Date().toLocaleString()}`, pageWidth / 2, pageHeight - 20, { align: 'center' });
+                doc.text(`Page X of Y`.replace('X', i.toString()).replace('Y', pageCount.toString()), pageWidth - margin, pageHeight - 20, { align: 'right' });
+            }
+
+            doc.save(`Krushit_Report_${result.disease.replace(/\s+/g, '_')}.pdf`);
+            
+            addNotification(t('common.downloadSuccess'), "Your structured PDF report has been downloaded.", 'crop');
         } catch (error: any) {
             console.error('PDF Generation error:', error);
+            alert("Failed to export PDF properly.");
         } finally {
             setSaving(false);
         }
